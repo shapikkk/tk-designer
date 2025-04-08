@@ -12,7 +12,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useCallback } from "react";
 import { generateTkinterCode } from "@/generateTkinterCode";
 import { v4 as uuidv4 } from "uuid";
-import { Button } from "@/components/ui/button"; // Додаємо Button із shadcn
+import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/toaster";
+import { toast } from "sonner";
+import { Copy } from "lucide-react";
 
 function App() {
   const widgets = [
@@ -114,22 +117,49 @@ function App() {
     );
   };
 
-  // Функція для копіювання коду в буфер обміну
   const handleCopyCode = () => {
     navigator.clipboard.writeText(pythonCode).then(() => {
-      alert("Code copied to clipboard!");
+      toast.success("Code copied to clipboard!", {
+        icon: <Copy className="h-4 w-4" />,
+      });
     }).catch((err) => {
       console.error("Failed to copy code: ", err);
+      toast.error("Failed to copy code");
     });
   };
 
-  // Функція для показу сирцевого коду (поки виводимо в консоль)
   const handleRawCode = () => {
-    console.log("Raw code:\n", pythonCode);
-    // У майбутньому можна відкрити нове вікно або вкладку
+    const newWindow = window.open("", "_blank");
+    if (newWindow) {
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Raw Python Code</title>
+            <style>
+              body {
+                background-color: #1a1a1a;
+                color: #ffffff;
+                font-family: monospace;
+                padding: 20px;
+              }
+              pre {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+              }
+            </style>
+          </head>
+          <body>
+            <pre>${pythonCode || "# Python code will appear here"}</pre>
+          </body>
+        </html>
+      `);
+      newWindow.document.close();
+    } else {
+      toast.error("Failed to open new tab. Please allow popups.");
+    }
   };
 
-  // Функція для завантаження коду як файлу
   const handleDownloadCode = () => {
     const blob = new Blob([pythonCode], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -140,6 +170,7 @@ function App() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    toast.success("File downloaded successfully!");
   };
 
   return (
@@ -207,8 +238,15 @@ function App() {
               </TabsContent>
               <TabsContent value="python">
                 <div className="relative">
-                  {/* Buttons */}
-                  <div className="absolute top-2 right-2 flex gap-2 zindex-10">
+                  <ScrollArea className="w-full h-[700px] rounded-sm border">
+                    <div
+                      className="p-2 font-mono text-sm"
+                      style={{ whiteSpace: "pre-wrap" }}
+                    >
+                      {pythonCode || "# Python code will appear here"}
+                    </div>
+                  </ScrollArea>
+                  <div className="absolute top-2 right-2 flex gap-2 z-10">
                     <Button variant="outline" size="sm" onClick={handleRawCode}>
                       Raw
                     </Button>
@@ -219,14 +257,6 @@ function App() {
                       Download raw file
                     </Button>
                   </div>
-                  <ScrollArea className="w-full h-[700px] rounded-sm border">
-                    <div
-                      className="p-2 font-mono text-sm"
-                      style={{ whiteSpace: "pre-wrap" }}
-                    >
-                      {pythonCode || "# Python code will appear here"}
-                    </div>
-                  </ScrollArea>
                 </div>
               </TabsContent>
             </Tabs>
@@ -236,6 +266,7 @@ function App() {
         </div>
       </div>
       <CustomDragLayer />
+      <Toaster />
     </DndProvider>
   );
 }
