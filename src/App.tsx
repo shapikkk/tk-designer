@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
+import { useState } from "react"
 
 function App() {
   const widgets = [
@@ -16,6 +17,27 @@ function App() {
     "ListBox",
     "Message",
   ]
+
+  const [dropzoneSize, setDropzoneSize] = useState({
+    width: "100%",
+    height: "700px"
+  })
+
+  const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setDropzoneSize(prev => ({
+      ...prev,
+      width: value ? `${value}px` : "100%"
+    }))
+  }
+
+  const handleHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setDropzoneSize(prev => ({
+      ...prev,
+      height: value ? `${value}px` : "700px"
+    }))
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -65,8 +87,30 @@ function App() {
               </ThemeProvider>
             </TabsList>
             <TabsContent value="visual">
-              <div className="w-full h-[700px] rounded-sm border" style={{ borderColor: 'var(--border)' }}>
-                {/*  CSS-mesh, background-image or SVG */}
+              <div 
+                className="w-full rounded-sm border"
+                style={{ 
+                  borderColor: 'var(--border)',
+                  width: dropzoneSize.width,
+                  height: dropzoneSize.height,
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {/* CSS-mesh, background-image or SVG */}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Input
+                  type="number"
+                  placeholder="Width (px)"
+                  onChange={handleWidthChange}
+                  className="rounded-sm focus:ring-0 text-sm py-1.5"
+                />
+                <Input
+                  type="number"
+                  placeholder="Height (px)"
+                  onChange={handleHeightChange}
+                  className="rounded-sm focus:ring-0 text-sm py-1.5"
+                />
               </div>
             </TabsContent>
             <TabsContent value="python">
