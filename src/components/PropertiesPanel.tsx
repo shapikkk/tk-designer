@@ -6,10 +6,10 @@ import { Trash } from "lucide-react";
 
 interface PropertiesPanelProps {
   onTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  components: { id: string; name: string; x: number; y: number }[];
+  components: { id: string; name: string; x: number; y: number; text?: string }[];
   selectedComponent: string | null;
   setComponents: React.Dispatch<
-    React.SetStateAction<{ id: string; name: string; x: number; y: number }[]>
+    React.SetStateAction<{ id: string; name: string; x: number; y: number; text?: string }[]>
   >;
   setPythonCode: React.Dispatch<React.SetStateAction<string>>;
   windowTitle: string;
@@ -53,6 +53,31 @@ export default function PropertiesPanel({
     toast.success("Component deleted successfully!");
   };
 
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newText = e.target.value;
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, text: newText } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const canChangeText = (name: string) => {
+    return ["Button", "Labels", "CheckBox", "RadioButton", "Message"].includes(name);
+  };
+
   return (
     <div className="w-64 p-4 border-l">
       <h2 className="text-lg font-semibold mb-3">Properties</h2>
@@ -83,6 +108,17 @@ export default function PropertiesPanel({
                 Position: ({selectedComp.x}, {selectedComp.y})
               </p>
             </div>
+            {canChangeText(selectedComp.name) && (
+              <div>
+                <label className="text-sm font-medium">Text</label>
+                <Input
+                  value={selectedComp.text || ""}
+                  onChange={handleTextChange}
+                  placeholder="Enter text"
+                  className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                />
+              </div>
+            )}
             <Button
               variant="outline"
               className="w-full bg-background text-foreground hover:bg-muted active:bg-muted"

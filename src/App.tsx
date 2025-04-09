@@ -35,13 +35,29 @@ function App() {
   const [windowTitle, setWindowTitle] = useState("My App");
   const [windowBackground, setWindowBackground] = useState("#ffffff");
   const [components, setComponents] = useState<
-    { id: string; name: string; x: number; y: number }[]
+    { id: string; name: string; x: number; y: number; text?: string }[]
   >([]);
   const [pythonCode, setPythonCode] = useState("");
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
 
   const handleDrop = useCallback((widgetName: string, x: number, y: number) => {
-    const newComponent = { id: uuidv4(), name: widgetName, x, y };
+    const initialText = {
+      Button: "Button",
+      Labels: "Label",
+      CheckBox: "CheckBox",
+      RadioButton: "RadioButton",
+      Message: "Message",
+      Entry: "",
+      ListBox: "",
+    }[widgetName];
+
+    const newComponent = { 
+      id: uuidv4(), 
+      name: widgetName, 
+      x, 
+      y, 
+      text: initialText
+    };
     setComponents((prev) => {
       const newComponents = [...prev, newComponent];
       setPythonCode(
