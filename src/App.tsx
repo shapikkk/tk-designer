@@ -33,10 +33,12 @@ function App() {
     height: "700px" as string | number,
   });
   const [windowTitle, setWindowTitle] = useState("My App");
+  const [windowBackground, setWindowBackground] = useState("#ffffff");
   const [components, setComponents] = useState<
     { id: string; name: string; x: number; y: number }[]
   >([]);
   const [pythonCode, setPythonCode] = useState("");
+  const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
 
   const handleDrop = useCallback((widgetName: string, x: number, y: number) => {
     const newComponent = { id: uuidv4(), name: widgetName, x, y };
@@ -47,12 +49,13 @@ function App() {
           newComponents,
           windowTitle,
           dropzoneSize.width,
-          dropzoneSize.height
+          dropzoneSize.height,
+          windowBackground
         )
       );
       return newComponents;
     });
-  }, [windowTitle, dropzoneSize]);
+  }, [windowTitle, dropzoneSize, windowBackground]);
 
   const updateComponentPosition = useCallback((id: string, x: number, y: number) => {
     setComponents((prev) => {
@@ -64,12 +67,13 @@ function App() {
           updatedComponents,
           windowTitle,
           dropzoneSize.width,
-          dropzoneSize.height
+          dropzoneSize.height,
+          windowBackground
         )
       );
       return updatedComponents;
     });
-  }, [windowTitle, dropzoneSize]);
+  }, [windowTitle, dropzoneSize, windowBackground]);
 
   const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -83,7 +87,8 @@ function App() {
           components,
           windowTitle,
           newSize.width,
-          newSize.height
+          newSize.height,
+          windowBackground
         )
       );
       return newSize;
@@ -102,7 +107,8 @@ function App() {
           components,
           windowTitle,
           newSize.width,
-          newSize.height
+          newSize.height,
+          windowBackground
         )
       );
       return newSize;
@@ -113,7 +119,15 @@ function App() {
     const newTitle = e.target.value || "My App";
     setWindowTitle(newTitle);
     setPythonCode(
-      generateTkinterCode(components, newTitle, dropzoneSize.width, dropzoneSize.height)
+      generateTkinterCode(components, newTitle, dropzoneSize.width, dropzoneSize.height, windowBackground)
+    );
+  };
+
+  const handleWindowBackgroundChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newColor = e.target.value;
+    setWindowBackground(newColor);
+    setPythonCode(
+      generateTkinterCode(components, windowTitle, dropzoneSize.width, dropzoneSize.height, newColor)
     );
   };
 
@@ -220,6 +234,9 @@ function App() {
                   height={dropzoneSize.height}
                   components={components}
                   updateComponentPosition={updateComponentPosition}
+                  selectedComponent={selectedComponent}
+                  setSelectedComponent={setSelectedComponent}
+                  windowBackground={windowBackground}
                 />
                 <div className="mt-3 flex gap-2">
                   <Input
@@ -262,7 +279,17 @@ function App() {
             </Tabs>
           </div>
 
-          <PropertiesPanel onTitleChange={handleTitleChange} />
+          <PropertiesPanel
+            onTitleChange={handleTitleChange}
+            components={components}
+            selectedComponent={selectedComponent}
+            setComponents={setComponents}
+            setPythonCode={setPythonCode}
+            windowTitle={windowTitle}
+            dropzoneSize={dropzoneSize}
+            windowBackground={windowBackground}
+            setWindowBackground={setWindowBackground}
+          />
         </div>
       </div>
       <CustomDragLayer />

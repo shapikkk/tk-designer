@@ -1,8 +1,16 @@
+interface Component {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+}
+
 export const generateTkinterCode = (
-  components: { id: string; name: string; x: number; y: number }[],
+  components: Component[],
   windowTitle: string,
   width: string | number,
-  height: string | number
+  height: string | number,
+  windowBackground: string
 ): string => {
   const widthPx = typeof width === "string" && width.endsWith("px") ? parseInt(width) : 1368;
   const heightPx = typeof height === "string" && height.endsWith("px") ? parseInt(height) : 700;
@@ -14,6 +22,7 @@ export const generateTkinterCode = (
   code += "root = ctk.CTk()\n";
   code += `root.title("${windowTitle}")\n`;
   code += `root.geometry("${widthPx}x${heightPx}")\n`;
+  code += `root.configure(fg_color="${windowBackground}")\n`;
   code += "\n";
 
   components.forEach((comp, index) => {

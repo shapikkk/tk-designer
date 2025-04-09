@@ -9,6 +9,9 @@ interface DropzoneProps {
   height: string | number;
   components: { id: string; name: string; x: number; y: number }[];
   updateComponentPosition: (id: string, x: number, y: number) => void;
+  selectedComponent: string | null;
+  setSelectedComponent: (id: string | null) => void;
+  windowBackground: string;
 }
 
 type DropzoneRef = ConnectDropTarget | null;
@@ -18,12 +21,14 @@ const GRID_SIZE = 20;
 interface DraggableComponentProps {
   comp: { id: string; name: string; x: number; y: number };
   updateComponentPosition: (id: string, x: number, y: number) => void;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
 }
 
 type DraggableComponentRef = ConnectDragSource | null;
 
 const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentProps>(
-  ({ comp, updateComponentPosition }, ref) => {
+  ({ comp, updateComponentPosition, isSelected, onSelect }, ref) => {
     const divRef = useRef<HTMLDivElement>(null);
     const [{ isDragging }, drag] = useDrag(() => ({
       type: "placed-component",
@@ -40,19 +45,19 @@ const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentP
     const getComponentStyles = (name: string) => {
       switch (name) {
         case "Button":
-          return "bg-[#1f6feb] text-white px-4 py-2 rounded-[6px]";
+          return "bg-[#3b82f6] text-white px-4 py-2 rounded-[6px] hover:bg-[#2563eb] transition-colors";
         case "Labels":
-          return "text-foreground px-2 py-1";
+          return "text-black px-2 py-1";
         case "Entry":
-          return "bg-background text-foreground border border-[#cccccc] px-3 py-1 rounded-[6px] w-[150px]";
+          return "bg-white text-black border border-[#d1d5db] px-3 py-1 rounded-[6px] w-[150px]";
         case "CheckBox":
-          return "flex items-center space-x-2 text-foreground";
+          return "flex items-center space-x-2 text-black";
         case "RadioButton":
-          return "flex items-center space-x-2 text-foreground"; 
+          return "flex items-center space-x-2 text-black";
         case "ListBox":
-          return "bg-background text-foreground border border-[#a9a9a9] p-2 rounded-[4px] w-[100px] h-[80px]";
+          return "bg-white text-black border border-[#d1d5db] p-2 w-[100px] h-[80px]";
         case "Message":
-          return "text-foreground px-2 py-1";
+          return "text-black px-2 py-1";
         default:
           return "";
       }
@@ -61,10 +66,12 @@ const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentP
     return (
       <div
         ref={divRef}
+        onClick={() => onSelect(comp.id)}
         className={cn(
           "font-sans cursor-move",
           getComponentStyles(comp.name),
-          isDragging && "opacity-50"
+          isDragging && "opacity-50",
+          isSelected && "ring-2 ring-primary"
         )}
         style={{
           position: "absolute",
@@ -74,12 +81,12 @@ const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentP
       >
         {comp.name === "CheckBox" ? (
           <div className="flex items-center">
-            <div className="w-4 h-4 border-2 border-[#cccccc] rounded-[2px] mr-2" />
+            <div className="w-5 h-5 border-2 border-[#d1d5db] rounded-[4px] mr-2" />
             {comp.name}
           </div>
         ) : comp.name === "RadioButton" ? (
           <div className="flex items-center">
-            <div className="w-4 h-4 border-2 border-[#cccccc] rounded-full mr-2" />
+            <div className="w-5 h-5 border-2 border-[#d1d5db] rounded-full mr-2" />
             {comp.name}
           </div>
         ) : comp.name === "ListBox" ? (
@@ -97,7 +104,7 @@ const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentP
 DraggableComponent.displayName = "DraggableComponent";
 
 const Dropzone = forwardRef<DropzoneRef, DropzoneProps>(
-  ({ onDrop, width, height, components, updateComponentPosition }, ref) => {
+  ({ onDrop, width, height, components, updateComponentPosition, selectedComponent, setSelectedComponent, windowBackground }, ref) => {
     const dropzoneRef = useRef<HTMLDivElement>(null);
 
     const [{ isOver }, drop] = useDrop(() => ({
@@ -141,11 +148,11 @@ const Dropzone = forwardRef<DropzoneRef, DropzoneProps>(
           borderColor: "var(--border)",
           width,
           height,
-          backgroundColor: isOver ? "#e0e0e0" : "var(--background)",
+          backgroundColor: isOver ? "#e0e0e0" : windowBackground,
           transition: "all 0.3s ease",
           backgroundImage: `
-            linear-gradient(to right,rgba(211, 211, 211, 0.45) 1px, transparent 1px),
-            linear-gradient(to bottom,rgba(211, 211, 211, 0.45) 1px, transparent 1px)
+            linear-gradient(to right, #d3d3d3 1px, transparent 1px),
+            linear-gradient(to bottom, #d3d3d3 1px, transparent 1px)
           `,
           backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
         }}
@@ -155,6 +162,8 @@ const Dropzone = forwardRef<DropzoneRef, DropzoneProps>(
             key={comp.id}
             comp={comp}
             updateComponentPosition={updateComponentPosition}
+            isSelected={selectedComponent === comp.id}
+            onSelect={setSelectedComponent}
           />
         ))}
       </div>

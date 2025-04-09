@@ -1,83 +1,100 @@
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { generateTkinterCode } from "@/generateTkinterCode";
+import { Trash } from "lucide-react";
 
 interface PropertiesPanelProps {
   onTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  components: { id: string; name: string; x: number; y: number }[];
+  selectedComponent: string | null;
+  setComponents: React.Dispatch<
+    React.SetStateAction<{ id: string; name: string; x: number; y: number }[]>
+  >;
+  setPythonCode: React.Dispatch<React.SetStateAction<string>>;
+  windowTitle: string;
+  dropzoneSize: { width: string | number; height: string | number };
+  windowBackground: string;
+  setWindowBackground: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ onTitleChange }) => {
+export default function PropertiesPanel({
+  onTitleChange,
+  components,
+  selectedComponent,
+  setComponents,
+  setPythonCode,
+  windowTitle,
+  dropzoneSize,
+  windowBackground,
+  setWindowBackground,
+}: PropertiesPanelProps) {
+  const selectedComp = components.find((comp) => comp.id === selectedComponent);
+
+  const handleDelete = () => {
+    if (!selectedComponent) {
+      toast.error("Please select a component to delete.");
+      return;
+    }
+
+    setComponents((prev) => {
+      const updatedComponents = prev.filter((comp) => comp.id !== selectedComponent);
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+    toast.success("Component deleted successfully!");
+  };
+
   return (
-    <div className="w-72 p-3 space-y-3">
-      <Card className="p-2 space-y-1.5 rounded-sm shadow-none">
-        <h3 className="font-semibold text-sm">Size</h3>
-        <div className="grid grid-cols-2 gap-1.5">
+    <div className="w-64 p-4 border-l">
+      <h2 className="text-lg font-semibold mb-3">Properties</h2>
+      <div className="space-y-3">
+        <div>
+          <label className="text-sm font-medium">Window Title</label>
           <Input
-            placeholder="Width"
-            className="rounded-sm focus:ring-0 text-sm py-0.5"
+            onChange={onTitleChange}
+            placeholder="Window Title"
+            className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
           />
-          <Input
-            placeholder="Height"
-            className="rounded-sm focus:ring-0 text-sm py-0.5"
-          />
-          <Input
-            placeholder="Top"
-            className="rounded-sm focus:ring-0 text-sm py-0.5"
-          />
-          <Input
-            placeholder="Left"
-            className="rounded-sm focus:ring-0 text-sm py-0.5"
-          />
-          <Input
-            placeholder="ID"
-            className="col-span-2 rounded-sm focus:ring-0 text-sm py-0.5"
-          />
-        </div>
-      </Card>
-
-      <Card className="p-2 space-y-1.5 rounded-sm shadow-none">
-        <h3 className="font-semibold text-sm">Windows Title</h3>
-        <Input
-          placeholder="Title"
-          onChange={onTitleChange}
-          className="rounded-sm focus:ring-0 text-sm py-0.5"
-        />
-      </Card>
-
-      <Card className="p-2 space-y-1.5 rounded-sm shadow-none">
-        <h3 className="font-semibold text-sm">Content</h3>
-        <div className="grid grid-cols-2 gap-1.5">
-          <Button className="text-sm py-0.5 rounded-sm">Active background</Button>
-          <Button className="text-sm py-0.5 rounded-sm">Active foreground</Button>
         </div>
         <div>
-          <label className="block mb-0.5 text-sm font-medium">Anchor</label>
-          <Select>
-            <SelectTrigger className="w-full text-sm py-0.5 rounded-sm">
-              <SelectValue placeholder="Select" />
-            </SelectTrigger>
-          </Select>
+          <label className="text-sm font-medium">Window Background</label>
+          <Input
+            type="color"
+            value={windowBackground}
+            onChange={(e) => setWindowBackground(e.target.value)}
+            className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5 w-full"
+          />
         </div>
-        <Input
-          placeholder="Background color"
-          className="rounded-sm focus:ring-0 text-sm py-0.5"
-        />
-        <Input
-          placeholder="Bitmap"
-          className="rounded-sm focus:ring-0 text-sm py-0.5"
-        />
-        <Input
-          placeholder="Border"
-          className="rounded-sm focus:ring-0 text-sm py-0.5"
-        />
-        <Input
-          placeholder="Compound (not support)"
-          className="rounded-sm focus:ring-0 text-sm py-0.5"
-        />
-      </Card>
+
+        {selectedComp ? (
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium">Selected: {selectedComp.name}</h3>
+              <p className="text-xs text-muted-foreground">
+                Position: ({selectedComp.x}, {selectedComp.y})
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full bg-background text-foreground hover:bg-muted active:bg-muted"
+              onClick={handleDelete}
+            >
+              <Trash className="mr-2 h-4 w-4" /> Delete Component
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Select a component to edit.</p>
+        )}
+      </div>
     </div>
   );
-};
-
-export default PropertiesPanel;
+}
