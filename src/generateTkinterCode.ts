@@ -3,7 +3,7 @@ interface Component {
   name: string;
   x: number;
   y: number;
-  text?: string; // Додаємо поле text
+  text?: string;
 }
 
 export const generateTkinterCode = (
