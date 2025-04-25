@@ -15,19 +15,19 @@ const CustomDragLayer = () => {
   const getWidgetStyles = (name: string) => {
     switch (name) {
       case "Button":
-        return "bg-[#1f6feb] text-white px-4 py-2 rounded-[6px]";
+        return "bg-[#3b82f6] text-white px-4 py-2 rounded-[6px] hover:bg-[#2563eb] transition-colors w-[140px] h-[28px] flex items-center justify-center";
       case "Labels":
-        return "text-foreground px-2 py-1";
+        return "text-black px-2 py-1";
       case "Entry":
-        return "bg-white text-foreground border border-[#cccccc] px-3 py-1 rounded-[6px] w-[150px]";
+        return "bg-white text-black border border-[#d1d5db] px-3 py-1 rounded-[6px] w-[140px] h-[28px]";
       case "CheckBox":
-        return "flex items-center space-x-2 text-foreground";
+        return "flex items-center space-x-2 text-black w-[100px] h-[24px]";
       case "RadioButton":
-        return "flex items-center space-x-2 text-foreground";
+        return "flex items-center space-x-2 text-black w-[100px] h-[22px]";
       case "ListBox":
-        return "bg-white text-foreground border border-[#a9a9a9] p-2 rounded-[4px] w-[100px] h-[80px]";
+        return "bg-white text-black border border-[#d1d5db] p-2 w-[100px] h-[80px]";
       case "Message":
-        return "text-foreground px-2 py-1";
+        return "text-black px-2 py-1";
       default:
         return "";
     }

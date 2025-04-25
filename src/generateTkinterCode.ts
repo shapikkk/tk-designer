@@ -1,8 +1,17 @@
+interface Component {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  text?: string;
+}
+
 export const generateTkinterCode = (
-  components: { id: string; name: string; x: number; y: number }[],
+  components: Component[],
   windowTitle: string,
   width: string | number,
-  height: string | number
+  height: string | number,
+  windowBackground: string
 ): string => {
   const widthPx = typeof width === "string" && width.endsWith("px") ? parseInt(width) : 1368;
   const heightPx = typeof height === "string" && height.endsWith("px") ? parseInt(height) : 700;
@@ -14,15 +23,17 @@ export const generateTkinterCode = (
   code += "root = ctk.CTk()\n";
   code += `root.title("${windowTitle}")\n`;
   code += `root.geometry("${widthPx}x${heightPx}")\n`;
+  code += `root.configure(fg_color="${windowBackground}")\n`;
   code += "\n";
 
   components.forEach((comp, index) => {
     const widgetId = `${comp.name.toLowerCase()}_${index}`;
+    const text = comp.text || comp.name;
     switch (comp.name) {
       case "Button":
         code += `${widgetId} = ctk.CTkButton(\n`;
         code += `    master=root,\n`;
-        code += `    text="Button ${index}",\n`;
+        code += `    text="${text}",\n`;
         code += `    fg_color="#3b82f6",  # Primary color from shadcn\n`;
         code += `    text_color="#ffffff",  # White text\n`;
         code += `    hover_color="#2563eb",  # Slightly darker on hover\n`;
@@ -33,7 +44,7 @@ export const generateTkinterCode = (
       case "Labels":
         code += `${widgetId} = ctk.CTkLabel(\n`;
         code += `    master=root,\n`;
-        code += `    text="Label ${index}",\n`;
+        code += `    text="${text}",\n`;
         code += `    text_color="#000000"  # Foreground color\n`;
         code += `)\n`;
         code += `${widgetId}.place(x=${comp.x}, y=${comp.y})\n`;
@@ -52,7 +63,7 @@ export const generateTkinterCode = (
       case "CheckBox":
         code += `${widgetId} = ctk.CTkCheckBox(\n`;
         code += `    master=root,\n`;
-        code += `    text="CheckBox ${index}",\n`;
+        code += `    text="${text}",\n`;
         code += `    text_color="#000000",  # Foreground color\n`;
         code += `    fg_color="#3b82f6",  # Checkmark color\n`;
         code += `    border_color="#d1d5db"  # Border color\n`;
@@ -62,7 +73,7 @@ export const generateTkinterCode = (
       case "RadioButton":
         code += `${widgetId} = ctk.CTkRadioButton(\n`;
         code += `    master=root,\n`;
-        code += `    text="RadioButton ${index}",\n`;
+        code += `    text="${text}",\n`;
         code += `    text_color="#000000",  # Foreground color\n`;
         code += `    fg_color="#3b82f6",  # Radio button color\n`;
         code += `    border_color="#d1d5db"  # Border color\n`;
@@ -86,7 +97,7 @@ export const generateTkinterCode = (
       case "Message":
         code += `${widgetId} = ctk.CTkLabel(\n`;
         code += `    master=root,\n`;
-        code += `    text="Message ${index}",\n`;
+        code += `    text="${text}",\n`;
         code += `    text_color="#000000"  # Foreground color\n`;
         code += `)\n`;
         code += `${widgetId}.place(x=${comp.x}, y=${comp.y})\n`;
