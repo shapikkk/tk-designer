@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { generateTkinterCode } from "@/generateTkinterCode";
 import { Trash } from "lucide-react";
 import { Separator } from "@/components/ui/separator"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface PropertiesPanelProps {
   onTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -356,224 +357,223 @@ export default function PropertiesPanel({
   };
 
   return (
-    <div className="w-64 p-4 border-l">
-      <h2 className="text-lg font-semibold mb-3">Properties</h2>
-      <div className="space-y-3">
-        <div>
-          <label className="text-sm font-medium">Window Title</label>
-          <Input
-            onChange={onTitleChange}
-            placeholder="Window Title"
-            className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-          />
-        </div>
-        <Separator />
-        <div>
-          <label className="text-sm font-medium">Window Background</label>
-          <Input
-            type="color"
-            value={windowBackground}
-            onChange={(e) => setWindowBackground(e.target.value)}
-            className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5 w-full"
-          />
-        </div>
-
-        <Separator />
-
-        {selectedComp ? (
-          <div className="space-y-3">
-            <div>
-              <h3 className="text-sm font-medium">Selected: {selectedComp.name}</h3>
-              <p className="text-xs text-muted-foreground">
-                Position: ({selectedComp.x}, {selectedComp.y})
-              </p>
-            </div>
-            <Separator />
-            {canChangeText(selectedComp.name) && (
-              <div>
-                <label className="text-sm font-medium">Text</label>
-                <Input
-                  value={selectedComp.text || ""}
-                  onChange={handleTextChange}
-                  placeholder="Enter text"
-                  className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                />
-              </div>
-            )}
-            <Separator />
-            {canChangeTextColor(selectedComp.name) && (
-              <div>
-                <label className="text-sm font-medium">Text Color</label>
-                <Input
-                  type="color"
-                  value={selectedComp.text_color || "#000000"}
-                  onChange={handleTextColorChange}
-                  className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                />
-              </div>
-            )}
-            <Separator />
-            {canChangeCheckBoxStyles(selectedComp.name) && (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium">Background Color</label>
-                  <Input
-                    type="color"
-                    value={selectedComp.bg_color || windowBackground}
-                    onChange={handleBgColorChange}
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-              </div>
-            )}
-            {canChangeLabelStyles(selectedComp.name) && (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium">Background Color</label>
-                  <Input
-                    type="color"
-                    value={selectedComp.bg_color || windowBackground}
-                    onChange={handleBgColorChange}
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-                <Separator />
-                <div>
-                  <label className="text-sm font-medium">Font Family</label>
-                  <Input
-                    value={selectedComp.font_family || "Arial"}
-                    onChange={handleFontFamilyChange}
-                    placeholder="Enter font family"
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-                <Separator />
-                <div>
-                  <label className="text-sm font-medium">Font Size (px)</label>
-                  <Input
-                    type="number"
-                    value={selectedComp.font_size || 14}
-                    onChange={handleFontSizeChange}
-                    placeholder="Enter font size"
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-              </div>
-            )}
-            {canChangeButtonStyles(selectedComp.name) && (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium">Background Color</label>
-                  <Input
-                    type="color"
-                    value={selectedComp.bg_color || "#3b82f6"}
-                    onChange={handleBgColorChange}
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-                <Separator />
-                <div>
-                  <label className="text-sm font-medium">Border Width (px)</label>
-                  <Input
-                    type="number"
-                    value={selectedComp.border_width || 0}
-                    onChange={handleBorderWidthChange}
-                    placeholder="Enter border width"
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-                <Separator />
-                <div>
-                  <label className="text-sm font-medium">Border Radius (px)</label>
-                  <Input
-                    type="number"
-                    value={selectedComp.border_radius || 6}
-                    onChange={handleBorderRadiusChange}
-                    placeholder="Enter border radius"
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-                <Separator />
-                <div>
-                  <label className="text-sm font-medium">Border Color</label>
-                  <Input
-                    type="color"
-                    value={selectedComp.border_color || "#3b82f6"}
-                    onChange={handleBorderColorChange}
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-                <Separator />
-                <div>
-                  <label className="text-sm font-medium">Font Size (px)</label>
-                  <Input
-                    type="number"
-                    value={selectedComp.font_size || 14}
-                    onChange={handleFontSizeChange}
-                    placeholder="Enter font size"
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-                <Separator />
-                <div>
-                  <label className="text-sm font-medium">Enable Hover</label>
-                  <Input
-                    type="checkbox"
-                    checked={selectedComp.enable_hover || false}
-                    onChange={handleEnableHoverChange}
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5 w-7 h-7"
-                  />
-                </div>
-                <Separator />
-                <div>
-                  <label className="text-sm font-medium">Hover Background Color</label>
-                  <Input
-                    type="color"
-                    value={selectedComp.hover_bg_color || "#2563eb"}
-                    onChange={handleHoverBgColorChange}
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-              </div>
-            )}
-            <Separator />
-            {canChangeSize(selectedComp.name) && (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium">Width (px)</label>
-                  <Input
-                    type="number"
-                    value={selectedComp.width || 140}
-                    onChange={handleWidthChange}
-                    placeholder="Enter width"
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Height (px)</label>
-                  <Input
-                    type="number"
-                    value={selectedComp.height || 28}
-                    onChange={handleHeightChange}
-                    placeholder="Enter height"
-                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-              </div>
-            )}
-            <Separator />
-            <Button
-              variant="outline"
-              className="w-full bg-background text-foreground hover:bg-muted active:bg-muted"
-              onClick={handleDelete}
-            >
-              <Trash className="mr-2 h-4 w-4" /> Delete Component
-            </Button>
+    <ScrollArea className="h-[900px] w-[350px] rounded-md border p-4 mt-6">
+      <div className="w-64 p-4 border-l">
+        <h2 className="text-lg font-semibold mb-3">Properties</h2>
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium">Window Title</label>
+            <Input
+              onChange={onTitleChange}
+              placeholder="Window Title"
+              className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+            />
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Select a component to edit.</p>
-        )}
+          <Separator />
+          <div>
+            <label className="text-sm font-medium">Window Background</label>
+            <Input
+              type="color"
+              value={windowBackground}
+              onChange={(e) => setWindowBackground(e.target.value)}
+              className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5 w-full"
+            />
+          </div>
+          <Separator />
+          {selectedComp ? (
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-sm font-medium">Selected: {selectedComp.name}</h3>
+                <p className="text-xs text-muted-foreground">
+                  Position: ({selectedComp.x}, {selectedComp.y})
+                </p>
+                <Separator className="mt-2"/>
+              </div>
+              {canChangeText(selectedComp.name) && (
+                <div>
+                  <label className="text-sm font-medium">Text</label>
+                  <Input
+                    value={selectedComp.text || ""}
+                    onChange={handleTextChange}
+                    placeholder="Enter text"
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+              )}
+              {canChangeTextColor(selectedComp.name) && (
+                <div>
+                  <label className="text-sm font-medium">Text Color</label>
+                  <Input
+                    type="color"
+                    value={selectedComp.text_color || "#000000"}
+                    onChange={handleTextColorChange}
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                  <Separator className="mt-3"/>
+                </div>
+                
+              )}
+              {canChangeCheckBoxStyles(selectedComp.name) && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium">Background Color</label>
+                    <Input
+                      type="color"
+                      value={selectedComp.bg_color || windowBackground}
+                      onChange={handleBgColorChange}
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                    <Separator className="mt-3"/>
+                  </div>
+                </div>
+              )}
+              {canChangeLabelStyles(selectedComp.name) && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium">Background Color</label>
+                    <Input
+                      type="color"
+                      value={selectedComp.bg_color || windowBackground}
+                      onChange={handleBgColorChange}
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                    <Separator className="mt-3"/>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Font Family</label>
+                    <Input
+                      value={selectedComp.font_family || "Arial"}
+                      onChange={handleFontFamilyChange}
+                      placeholder="Enter font family"
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Font Size (px)</label>
+                    <Input
+                      type="number"
+                      value={selectedComp.font_size || 14}
+                      onChange={handleFontSizeChange}
+                      placeholder="Enter font size"
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                  </div>
+                  <Separator />
+                </div>
+              )}
+              {canChangeButtonStyles(selectedComp.name) && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium">Background Color</label>
+                    <Input
+                      type="color"
+                      value={selectedComp.bg_color || "#3b82f6"}
+                      onChange={handleBgColorChange}
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                    <Separator className="mt-3"/>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Border Width (px)</label>
+                    <Input
+                      type="number"
+                      value={selectedComp.border_width || 0}
+                      onChange={handleBorderWidthChange}
+                      placeholder="Enter border width"
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Border Radius (px)</label>
+                    <Input
+                      type="number"
+                      value={selectedComp.border_radius || 6}
+                      onChange={handleBorderRadiusChange}
+                      placeholder="Enter border radius"
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Border Color</label>
+                    <Input
+                      type="color"
+                      value={selectedComp.border_color || "#3b82f6"}
+                      onChange={handleBorderColorChange}
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                    <Separator className="mt-3"/>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Font Size (px)</label>
+                    <Input
+                      type="number"
+                      value={selectedComp.font_size || 14}
+                      onChange={handleFontSizeChange}
+                      placeholder="Enter font size"
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                    <Separator className="mt-3"/>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Enable Hover</label>
+                    <Input
+                      type="checkbox"
+                      checked={selectedComp.enable_hover || false}
+                      onChange={handleEnableHoverChange}
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5 w-7 h-7"
+                    />
+                    <Separator className="mt-3"/>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Hover Background Color</label>
+                    <Input
+                      type="color"
+                      value={selectedComp.hover_bg_color || "#2563eb"}
+                      onChange={handleHoverBgColorChange}
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                    <Separator className="mt-3"/>
+                  </div>
+                </div>
+              )}
+              {canChangeSize(selectedComp.name) && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium">Width (px)</label>
+                    <Input
+                      type="number"
+                      value={selectedComp.width || 140}
+                      onChange={handleWidthChange}
+                      placeholder="Enter width"
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Height (px)</label>
+                    <Input
+                      type="number"
+                      value={selectedComp.height || 28}
+                      onChange={handleHeightChange}
+                      placeholder="Enter height"
+                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                  </div>
+                  <Separator />
+                </div>
+              )}
+              <Button
+                variant="outline"
+                className="w-full bg-background text-foreground hover:bg-muted active:bg-muted"
+                onClick={handleDelete}
+              >
+                <Trash className="mr-2 h-4 w-4" /> Delete Component
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Select a component to edit.</p>
+          )}
+        </div>
       </div>
-    </div>
+    </ScrollArea>
   );
 }

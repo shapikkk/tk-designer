@@ -53,7 +53,7 @@ const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentP
         case "CheckBox":
           return "flex items-center space-x-2 w-[100px] h-[24px]";
         case "RadioButton":
-          return "flex items-center space-x-2 w-[100px] h-[22px]";
+          return "flex items-center space-x-2 w-[120px] h-[22px]";
         case "ListBox":
           return "bg-white text-black border border-[#d1d5db] p-2 w-[100px] h-[80px]";
         default:
