@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { generateTkinterCode } from "@/generateTkinterCode";
 import { Trash } from "lucide-react";
+import { Separator } from "@/components/ui/separator"
 
 interface PropertiesPanelProps {
   onTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  components: { id: string; name: string; x: number; y: number; text?: string }[];
+  components: { id: string; name: string; x: number; y: number; text?: string; width?: number; height?: number; text_color?: string; bg_color?: string; border_width?: number; border_radius?: number; border_color?: string; font_size?: number; enable_hover?: boolean; hover_bg_color?: string; font_family?: string }[];
   selectedComponent: string | null;
   setComponents: React.Dispatch<
-    React.SetStateAction<{ id: string; name: string; x: number; y: number; text?: string }[]>
+    React.SetStateAction<{ id: string; name: string; x: number; y: number; text?: string; width?: number; height?: number; text_color?: string; bg_color?: string; border_width?: number; border_radius?: number; border_color?: string; font_size?: number; enable_hover?: boolean; hover_bg_color?: string; font_family?: string }[]>
   >;
   setPythonCode: React.Dispatch<React.SetStateAction<string>>;
   windowTitle: string;
@@ -74,8 +75,284 @@ export default function PropertiesPanel({
     });
   };
 
+  const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newWidth = parseInt(e.target.value);
+    if (isNaN(newWidth) || newWidth < 50) {
+      toast.error("Width must be at least 50px.");
+      return;
+    }
+
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, width: newWidth } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newHeight = parseInt(e.target.value);
+    if (isNaN(newHeight) || newHeight < 20) {
+      toast.error("Height must be at least 20px.");
+      return;
+    }
+
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, height: newHeight } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleTextColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newColor = e.target.value;
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, text_color: newColor } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleBgColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newColor = e.target.value;
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, bg_color: newColor } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleBorderWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newWidth = parseInt(e.target.value);
+    if (isNaN(newWidth) || newWidth < 0) {
+      toast.error("Border width must be at least 0px.");
+      return;
+    }
+
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, border_width: newWidth } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleBorderRadiusChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newRadius = parseInt(e.target.value);
+    if (isNaN(newRadius) || newRadius < 0) {
+      toast.error("Border radius must be at least 0px.");
+      return;
+    }
+
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, border_radius: newRadius } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleBorderColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newColor = e.target.value;
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, border_color: newColor } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleFontSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newSize = parseInt(e.target.value);
+    if (isNaN(newSize) || newSize < 8) {
+      toast.error("Font size must be at least 8px.");
+      return;
+    }
+
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, font_size: newSize } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleFontFamilyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newFamily = e.target.value;
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, font_family: newFamily } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleEnableHoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newValue = e.target.checked;
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, enable_hover: newValue } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleHoverBgColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedComponent) return;
+
+    const newColor = e.target.value;
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, hover_bg_color: newColor } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
   const canChangeText = (name: string) => {
-    return ["Button", "Labels", "CheckBox", "RadioButton", "Message"].includes(name);
+    return ["Button", "Labels", "CheckBox", "RadioButton"].includes(name);
+  };
+
+  const canChangeSize = (name: string) => {
+    return name === "Button";
+  };
+
+  const canChangeTextColor = (name: string) => {
+    return canChangeText(name);
+  };
+
+  const canChangeButtonStyles = (name: string) => {
+    return name === "Button";
+  };
+
+  const canChangeCheckBoxStyles = (name: string) => {
+    return name === "CheckBox" || name === "RadioButton";
+  };
+
+  const canChangeLabelStyles = (name: string) => {
+    return name === "Labels";
   };
 
   return (
@@ -90,6 +367,7 @@ export default function PropertiesPanel({
             className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
           />
         </div>
+        <Separator />
         <div>
           <label className="text-sm font-medium">Window Background</label>
           <Input
@@ -100,6 +378,8 @@ export default function PropertiesPanel({
           />
         </div>
 
+        <Separator />
+
         {selectedComp ? (
           <div className="space-y-3">
             <div>
@@ -108,6 +388,7 @@ export default function PropertiesPanel({
                 Position: ({selectedComp.x}, {selectedComp.y})
               </p>
             </div>
+            <Separator />
             {canChangeText(selectedComp.name) && (
               <div>
                 <label className="text-sm font-medium">Text</label>
@@ -119,6 +400,168 @@ export default function PropertiesPanel({
                 />
               </div>
             )}
+            <Separator />
+            {canChangeTextColor(selectedComp.name) && (
+              <div>
+                <label className="text-sm font-medium">Text Color</label>
+                <Input
+                  type="color"
+                  value={selectedComp.text_color || "#000000"}
+                  onChange={handleTextColorChange}
+                  className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                />
+              </div>
+            )}
+            <Separator />
+            {canChangeCheckBoxStyles(selectedComp.name) && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium">Background Color</label>
+                  <Input
+                    type="color"
+                    value={selectedComp.bg_color || windowBackground}
+                    onChange={handleBgColorChange}
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+              </div>
+            )}
+            {canChangeLabelStyles(selectedComp.name) && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium">Background Color</label>
+                  <Input
+                    type="color"
+                    value={selectedComp.bg_color || windowBackground}
+                    onChange={handleBgColorChange}
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+                <Separator />
+                <div>
+                  <label className="text-sm font-medium">Font Family</label>
+                  <Input
+                    value={selectedComp.font_family || "Arial"}
+                    onChange={handleFontFamilyChange}
+                    placeholder="Enter font family"
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+                <Separator />
+                <div>
+                  <label className="text-sm font-medium">Font Size (px)</label>
+                  <Input
+                    type="number"
+                    value={selectedComp.font_size || 14}
+                    onChange={handleFontSizeChange}
+                    placeholder="Enter font size"
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+              </div>
+            )}
+            {canChangeButtonStyles(selectedComp.name) && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium">Background Color</label>
+                  <Input
+                    type="color"
+                    value={selectedComp.bg_color || "#3b82f6"}
+                    onChange={handleBgColorChange}
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+                <Separator />
+                <div>
+                  <label className="text-sm font-medium">Border Width (px)</label>
+                  <Input
+                    type="number"
+                    value={selectedComp.border_width || 0}
+                    onChange={handleBorderWidthChange}
+                    placeholder="Enter border width"
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+                <Separator />
+                <div>
+                  <label className="text-sm font-medium">Border Radius (px)</label>
+                  <Input
+                    type="number"
+                    value={selectedComp.border_radius || 6}
+                    onChange={handleBorderRadiusChange}
+                    placeholder="Enter border radius"
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+                <Separator />
+                <div>
+                  <label className="text-sm font-medium">Border Color</label>
+                  <Input
+                    type="color"
+                    value={selectedComp.border_color || "#3b82f6"}
+                    onChange={handleBorderColorChange}
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+                <Separator />
+                <div>
+                  <label className="text-sm font-medium">Font Size (px)</label>
+                  <Input
+                    type="number"
+                    value={selectedComp.font_size || 14}
+                    onChange={handleFontSizeChange}
+                    placeholder="Enter font size"
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+                <Separator />
+                <div>
+                  <label className="text-sm font-medium">Enable Hover</label>
+                  <Input
+                    type="checkbox"
+                    checked={selectedComp.enable_hover || false}
+                    onChange={handleEnableHoverChange}
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5 w-7 h-7"
+                  />
+                </div>
+                <Separator />
+                <div>
+                  <label className="text-sm font-medium">Hover Background Color</label>
+                  <Input
+                    type="color"
+                    value={selectedComp.hover_bg_color || "#2563eb"}
+                    onChange={handleHoverBgColorChange}
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+              </div>
+            )}
+            <Separator />
+            {canChangeSize(selectedComp.name) && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium">Width (px)</label>
+                  <Input
+                    type="number"
+                    value={selectedComp.width || 140}
+                    onChange={handleWidthChange}
+                    placeholder="Enter width"
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Height (px)</label>
+                  <Input
+                    type="number"
+                    value={selectedComp.height || 28}
+                    onChange={handleHeightChange}
+                    placeholder="Enter height"
+                    className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
+                  />
+                </div>
+              </div>
+            )}
+            <Separator />
             <Button
               variant="outline"
               className="w-full bg-background text-foreground hover:bg-muted active:bg-muted"

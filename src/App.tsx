@@ -25,7 +25,6 @@ function App() {
     "RadioButton",
     "Entry",
     "ListBox",
-    "Message",
   ];
 
   const [dropzoneSize, setDropzoneSize] = useState({
@@ -35,7 +34,24 @@ function App() {
   const [windowTitle, setWindowTitle] = useState("My App");
   const [windowBackground, setWindowBackground] = useState("#ffffff");
   const [components, setComponents] = useState<
-    { id: string; name: string; x: number; y: number; text?: string }[]
+    { 
+      id: string; 
+      name: string; 
+      x: number; 
+      y: number; 
+      text?: string; 
+      width?: number; 
+      height?: number; 
+      text_color?: string; 
+      bg_color?: string; 
+      border_width?: number; 
+      border_radius?: number; 
+      border_color?: string; 
+      font_size?: number; 
+      enable_hover?: boolean; 
+      hover_bg_color?: string; 
+      font_family?: string; 
+    }[]
   >([]);
   const [pythonCode, setPythonCode] = useState("");
   const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
@@ -46,17 +62,47 @@ function App() {
       Labels: "Label",
       CheckBox: "CheckBox",
       RadioButton: "RadioButton",
-      Message: "Message",
       Entry: "",
       ListBox: "",
     }[widgetName];
+
+    const initialSizes = widgetName === "Button" ? { width: 140, height: 28 } : {};
+    const initialTextColor = ["Button", "Labels", "CheckBox", "RadioButton"].includes(widgetName) ? "#000000" : undefined;
+    const initialButtonProps = widgetName === "Button" ? {
+      bg_color: "#3b82f6",
+      border_width: 0,
+      border_radius: 6,
+      border_color: "#3b82f6",
+      font_size: 14,
+      enable_hover: true,
+      hover_bg_color: "#2563eb",
+    } : {};
+    const initialCheckBoxProps = widgetName === "CheckBox" ? {
+      text_color: "#000000",
+      bg_color: windowBackground,
+    } : {};
+    const initialRadioButtonProps = widgetName === "RadioButton" ? {
+      text_color: "#000000",
+      bg_color: windowBackground,
+    } : {};
+    const initialLabelsProps = widgetName === "Labels" ? {
+      text_color: "#000000",
+      bg_color: windowBackground,
+      font_size: 14,
+      font_family: "Arial",
+    } : {};
 
     const newComponent = { 
       id: uuidv4(), 
       name: widgetName, 
       x, 
       y, 
-      text: initialText
+      text: initialText,
+      ...initialSizes,
+      ...initialButtonProps,
+      ...initialCheckBoxProps,
+      ...initialRadioButtonProps,
+      ...initialLabelsProps,
     };
     setComponents((prev) => {
       const newComponents = [...prev, newComponent];
@@ -204,113 +250,113 @@ function App() {
   };
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="flex min-h-screen">
-        <div className="w-60 p-4 flex flex-col justify-between">
-          <div>
-            <h2 className="text-lg font-semibold mb-3">Core Widgets</h2>
-            <div className="space-y-1.5">
-              {widgets.map((widget) => (
-                <Widget key={widget} name={widget} />
-              ))}
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <DndProvider backend={HTML5Backend}>
+        <div className="flex min-h-screen">
+          <div className="w-60 p-4 flex flex-col justify-between">
+            <div>
+              <h2 className="text-lg font-semibold mb-3">Core Widgets</h2>
+              <div className="space-y-1.5">
+                {widgets.map((widget) => (
+                  <Widget key={widget} name={widget} />
+                ))}
+              </div>
+            </div>
+            <div className="text-xs mt-4">
+              <p>Contact us</p>
+              <p>Copyright © 2025 tk-designer.com</p>
             </div>
           </div>
-          <div className="text-xs mt-4">
-            <p>Contact us</p>
-            <p>Copyright © 2025 tk-designer.com</p>
-          </div>
-        </div>
 
-        <div className="flex flex-1">
-          <div className="flex-[2] p-3">
-            <Tabs defaultValue="visual" className="w-full">
-              <TabsList className="mb-3 flex gap-3">
-                <TabsTrigger
-                  value="visual"
-                  className="px-3 py-1 rounded-none text-sm"
-                >
-                  <img src="/assets/eyecode.svg" alt="eye" />
-                  Visual
-                </TabsTrigger>
-                <TabsTrigger
-                  value="python"
-                  className="px-3 py-1 rounded-none text-sm"
-                >
-                  <img src="/assets/sellector.svg" alt="selector" />
-                  Python
-                </TabsTrigger>
-                <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+          <div className="flex flex-1">
+            <div className="flex-[2] p-3">
+              <Tabs defaultValue="visual" className="w-full">
+                <TabsList className="mb-3 flex gap-3">
+                  <TabsTrigger
+                    value="visual"
+                    className="px-3 py-1 rounded-none text-sm"
+                  >
+                    <img src="/assets/eyecode.svg" alt="eye" />
+                    Visual
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="python"
+                    className="px-3 py-1 rounded-none text-sm"
+                  >
+                    <img src="/assets/sellector.svg" alt="selector" />
+                    Python
+                  </TabsTrigger>
                   <ModeToggle />
-                </ThemeProvider>
-              </TabsList>
-              <TabsContent value="visual">
-                <Dropzone
-                  onDrop={handleDrop}
-                  width={dropzoneSize.width}
-                  height={dropzoneSize.height}
-                  components={components}
-                  updateComponentPosition={updateComponentPosition}
-                  selectedComponent={selectedComponent}
-                  setSelectedComponent={setSelectedComponent}
-                  windowBackground={windowBackground}
-                />
-                <div className="mt-3 flex gap-2">
-                  <Input
-                    type="number"
-                    placeholder="Width (px)"
-                    onChange={handleWidthChange}
-                    className="rounded-sm focus:ring-0 text-sm py-1.5"
+                </TabsList>
+                <TabsContent value="visual">
+                  <Dropzone
+                    onDrop={handleDrop}
+                    width={dropzoneSize.width}
+                    height={dropzoneSize.height}
+                    components={components}
+                    updateComponentPosition={updateComponentPosition}
+                    selectedComponent={selectedComponent}
+                    setSelectedComponent={setSelectedComponent}
+                    windowBackground={windowBackground}
                   />
-                  <Input
-                    type="number"
-                    placeholder="Height (px)"
-                    onChange={handleHeightChange}
-                    className="rounded-sm focus:ring-0 text-sm py-1.5"
-                  />
-                </div>
-              </TabsContent>
-              <TabsContent value="python">
-                <div className="relative">
-                  <ScrollArea className="w-full h-[700px] rounded-sm border">
-                    <div
-                      className="p-2 font-mono text-sm"
-                      style={{ whiteSpace: "pre-wrap" }}
-                    >
-                      {pythonCode || "# Python code will appear here"}
-                    </div>
-                  </ScrollArea>
-                  <div className="absolute top-2 right-2 flex gap-2 z-10">
-                    <Button variant="outline" size="sm" onClick={handleRawCode}>
-                      Raw
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleCopyCode}>
-                      Copy
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleDownloadCode}>
-                      Download raw file
-                    </Button>
+                  <div className="mt-3 flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Width (px)"
+                      onChange={handleWidthChange}
+                      className="rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Height (px)"
+                      onChange={handleHeightChange}
+                      className="rounded-sm focus:ring-0 text-sm py-1.5"
+                    />
                   </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
+                </TabsContent>
+                <TabsContent value="python">
+                  <div className="relative">
+                    <ScrollArea className="w-full h-[700px] rounded-sm border">
+                      <div
+                        className="p-2 font-mono text-sm"
+                        style={{ whiteSpace: "pre-wrap" }}
+                      >
+                        {pythonCode || "# Python code will appear here"}
+                      </div>
+                    </ScrollArea>
+                    <div className="absolute top-2 right-2 flex gap-2 z-10">
+                      <Button variant="outline" size="sm" onClick={handleRawCode}>
+                        Raw
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleCopyCode}>
+                        Copy
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleDownloadCode}>
+                        Download raw file
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
 
-          <PropertiesPanel
-            onTitleChange={handleTitleChange}
-            components={components}
-            selectedComponent={selectedComponent}
-            setComponents={setComponents}
-            setPythonCode={setPythonCode}
-            windowTitle={windowTitle}
-            dropzoneSize={dropzoneSize}
-            windowBackground={windowBackground}
-            setWindowBackground={setWindowBackground}
-          />
+            <PropertiesPanel
+              onTitleChange={handleTitleChange}
+              components={components}
+              selectedComponent={selectedComponent}
+              setComponents={setComponents}
+              setPythonCode={setPythonCode}
+              windowTitle={windowTitle}
+              dropzoneSize={dropzoneSize}
+              windowBackground={windowBackground}
+              setWindowBackground={setWindowBackground}
+            />
+          </div>
         </div>
-      </div>
-      <CustomDragLayer />
-      <Toaster />
-    </DndProvider>
+        <CustomDragLayer />
+        <Toaster />
+      </DndProvider>
+    </ThemeProvider>
   );
 }
 

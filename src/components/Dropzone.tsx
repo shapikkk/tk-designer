@@ -7,7 +7,7 @@ interface DropzoneProps {
   onDrop: (widgetName: string, x: number, y: number) => void;
   width: string | number;
   height: string | number;
-  components: { id: string; name: string; x: number; y: number; text?: string }[];
+  components: { id: string; name: string; x: number; y: number; text?: string; width?: number; height?: number; text_color?: string; bg_color?: string; border_width?: number; border_radius?: number; border_color?: string; font_size?: number; enable_hover?: boolean; hover_bg_color?: string; font_family?: string }[];
   updateComponentPosition: (id: string, x: number, y: number) => void;
   selectedComponent: string | null;
   setSelectedComponent: (id: string | null) => void;
@@ -19,7 +19,7 @@ type DropzoneRef = ConnectDropTarget | null;
 const GRID_SIZE = 20;
 
 interface DraggableComponentProps {
-  comp: { id: string; name: string; x: number; y: number; text?: string };
+  comp: { id: string; name: string; x: number; y: number; text?: string; width?: number; height?: number; text_color?: string; bg_color?: string; border_width?: number; border_radius?: number; border_color?: string; font_size?: number; enable_hover?: boolean; hover_bg_color?: string; font_family?: string };
   updateComponentPosition: (id: string, x: number, y: number) => void;
   isSelected: boolean;
   onSelect: (id: string) => void;
@@ -45,21 +45,31 @@ const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentP
     const getComponentStyles = (name: string) => {
       switch (name) {
         case "Button":
-          return "bg-[#3b82f6] text-white px-4 py-2 rounded-[6px] hover:bg-[#2563eb] transition-colors w-[140px] h-[28px] flex items-center justify-center";
+          return "px-4 py-2 rounded-[6px] flex items-center justify-center transition-colors duration-200";
         case "Labels":
-          return "text-foreground px-2 py-1";
+          return "px-2 py-1";
         case "Entry":
           return "bg-white text-black border border-[#d1d5db] px-3 py-1 rounded-[6px] w-[140px] h-[28px]";
         case "CheckBox":
-          return "flex items-center space-x-2 text-foreground w-[100px] h-[24px]";
+          return "flex items-center space-x-2 w-[100px] h-[24px]";
         case "RadioButton":
-          return "flex items-center space-x-2 text-foreground w-[100px] h-[22px]";
+          return "flex items-center space-x-2 w-[100px] h-[22px]";
         case "ListBox":
           return "bg-white text-black border border-[#d1d5db] p-2 w-[100px] h-[80px]";
-        case "Message":
-          return "text-foreground px-2 py-1";
         default:
           return "";
+      }
+    };
+
+    const handleMouseEnter = () => {
+      if (comp.enable_hover && comp.hover_bg_color) {
+        divRef.current?.style.setProperty("background-color", comp.hover_bg_color);
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (comp.enable_hover && comp.bg_color) {
+        divRef.current?.style.setProperty("background-color", comp.bg_color);
       }
     };
 
@@ -67,6 +77,8 @@ const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentP
       <div
         ref={divRef}
         onClick={() => onSelect(comp.id)}
+        onMouseEnter={comp.enable_hover ? handleMouseEnter : undefined}
+        onMouseLeave={comp.enable_hover ? handleMouseLeave : undefined}
         className={cn(
           "font-sans cursor-move",
           getComponentStyles(comp.name),
@@ -77,17 +89,27 @@ const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentP
           position: "absolute",
           left: comp.x,
           top: comp.y,
+          width: comp.name === "Button" ? (comp.width || 140) : undefined,
+          height: comp.name === "Button" ? (comp.height || 28) : undefined,
+          backgroundColor: comp.bg_color || undefined,
+          borderWidth: comp.name === "Button" ? (comp.border_width || 0) : undefined,
+          borderStyle: comp.name === "Button" && (comp.border_width || 0) > 0 ? "solid" : undefined,
+          borderColor: comp.border_color || "#3b82f6",
+          borderRadius: comp.name === "Button" ? (comp.border_radius || 6) : undefined,
+          color: comp.text_color || (comp.name === "Button" ? "#ffffff" : undefined),
+          fontSize: comp.font_size || undefined,
+          fontFamily: comp.font_family || undefined,
         }}
       >
         {comp.name === "CheckBox" ? (
           <div className="flex items-center">
             <div className="w-5 h-5 border-2 border-[#d1d5db] rounded-[4px] mr-2" />
-            <span className="truncate">{comp.text || "CheckBox"}</span>
+            <span className="truncate" style={{ color: comp.text_color || "#000000" }}>{comp.text || "CheckBox"}</span>
           </div>
         ) : comp.name === "RadioButton" ? (
           <div className="flex items-center">
             <div className="w-5 h-5 border-2 border-[#d1d5db] rounded-full mr-2" />
-            <span className="truncate">{comp.text || "RadioButton"}</span>
+            <span className="truncate" style={{ color: comp.text_color || "#000000" }}>{comp.text || "RadioButton"}</span>
           </div>
         ) : comp.name === "ListBox" ? (
           <div className="text-sm">
@@ -96,7 +118,7 @@ const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentP
         ) : comp.name === "Entry" ? (
           "Entry"
         ) : (
-          <span className="truncate">{comp.text || comp.name}</span>
+          <span className="truncate" style={{ color: comp.text_color || "#000000" }}>{comp.text || comp.name}</span>
         )}
       </div>
     );
@@ -153,8 +175,8 @@ const Dropzone = forwardRef<DropzoneRef, DropzoneProps>(
           backgroundColor: isOver ? "#e0e0e0" : windowBackground,
           transition: "all 0.3s ease",
           backgroundImage: `
-            linear-gradient(to right,rgba(211, 211, 211, 0.45) 1px, transparent 1px),
-            linear-gradient(to bottom,rgba(211, 211, 211, 0.45) 1px, transparent 1px)
+            linear-gradient(to right, #d3d3d3 1px, transparent 1px),
+            linear-gradient(to bottom, #d3d3d3 1px, transparent 1px)
           `,
           backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
         }}

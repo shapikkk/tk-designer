@@ -52,7 +52,7 @@ const CustomDragLayer = () => {
         </div>
       ) : item.name === "RadioButton" ? (
         <div className="flex items-center">
-          <div className="w-4 h-4 border-2 border-[#cccccc] rounded-full mr-2" />
+          <div className="w-5 h-5 border-2 border-[#d1d5db] rounded-full mr-2" />
           {item.name}
         </div>
       ) : item.name === "ListBox" ? (

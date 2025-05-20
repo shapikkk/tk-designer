@@ -1,7 +1,8 @@
 import { useDrag } from "react-dnd";
-import { Ref, forwardRef } from "react";
+import { Ref, forwardRef, useContext } from "react";
 import { ConnectDragSource } from "react-dnd";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme-provider";
 
 interface WidgetProps {
   name: string;
@@ -10,6 +11,8 @@ interface WidgetProps {
 type WidgetRef = ConnectDragSource | null;
 
 const Widget = forwardRef<WidgetRef, WidgetProps>(({ name }, ref) => {
+  const { theme } = useTheme();
+
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "widget",
     item: { name },
@@ -18,22 +21,24 @@ const Widget = forwardRef<WidgetRef, WidgetProps>(({ name }, ref) => {
     }),
   }));
 
+  const getTextColor = () => {
+    return theme === "dark" ? "text-white" : "text-black";
+  };
+
   const getWidgetStyles = () => {
     switch (name) {
       case "Button":
-        return "bg-[#3b82f6] text-white px-4 py-2 rounded-[6px] hover:bg-[#2563eb] transition-colors w-[140px] h-[28px] flex items-center justify-center";
+        return "px-4 py-2 rounded-[6px] flex items-center justify-center transition-colors duration-200 bg-[#3b82f6] hover:bg-[#2563eb] w-[140px] h-[28px]";
       case "Labels":
-        return "text-foreground px-2 py-1";
+        return "px-2 py-1 flex items-center";
       case "Entry":
-        return "bg-white text-black border border-[#d1d5db] px-3 py-1 rounded-[6px] w-[140px] h-[28px]";
+        return "text-black border border-[#d1d5db] px-3 py-1 rounded-[6px] w-[140px] h-[28px] flex items-center justify-center";
       case "CheckBox":
-        return "flex items-center space-x-2 text-foreground w-[100px] h-[24px]";
+        return "flex items-center space-x-2 w-[100px] h-[24px]";
       case "RadioButton":
-        return "flex items-center space-x-2 text-foreground w-[100px] h-[22px]";
+        return "flex items-center space-x-2 w-[100px] h-[22px]";
       case "ListBox":
-        return "bg-white text-black border border-[#d1d5db] p-2 w-[100px] h-[80px]";
-      case "Message":
-        return "text-foreground px-2 py-1";
+        return "text-black border border-[#d1d5db] p-2 w-[100px] h-[80px] flex items-start";
       default:
         return "";
     }
@@ -45,8 +50,13 @@ const Widget = forwardRef<WidgetRef, WidgetProps>(({ name }, ref) => {
       className={cn(
         "cursor-move select-none font-sans",
         getWidgetStyles(),
+        getTextColor(),
         isDragging && "opacity-50"
       )}
+      style={{
+        minWidth: "fit-content",
+        minHeight: "fit-content",
+      }}
     >
       {name === "CheckBox" ? (
         <div className="flex items-center">
