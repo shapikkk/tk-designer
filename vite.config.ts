@@ -12,10 +12,8 @@ export default defineConfig({
     },
   },
   server: {
-    // allow both localhost and your ngrok tunnel
-    allowedHosts: ["localhost", "127.0.0.1", "52a1-188-163-49-155.ngrok-free.app"],
-    // (optional) if you need to expose vite on a specific port/IP:
-    // host: true,          // listen on all interfaces
-    // port: 5173,          // or any port you like
+    allowedHosts: ["localhost", "127.0.0.1", "70cb-188-163-53-16.ngrok-free.app"],
+    // host: true,
+    // port: 5173,
   },
 });

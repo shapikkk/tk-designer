@@ -42,6 +42,8 @@ export const generateTkinterCode = (
     const text = comp.text || comp.name;
     switch (comp.name) {
       case "Button":
+        code += `def on_button_click():\n`;
+        code += `  print("button clicked")\n`;
         code += `${widgetId} = ctk.CTkButton(\n`;
         code += `    master=root,\n`;
         code += `    text="${text}",\n`;
@@ -58,6 +60,7 @@ export const generateTkinterCode = (
         } else {
           code += `    hover_color="${comp.bg_color || "#3b82f6"}",\n`;
         }
+        code += `    command=on_button_click\n`;
         code += `)\n`;
         code += `${widgetId}.place(x=${comp.x}, y=${comp.y})\n`;
         break;

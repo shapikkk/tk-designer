@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { generateTkinterCode } from "@/generateTkinterCode";
 import { Trash } from "lucide-react";
-import { Separator } from "@/components/ui/separator"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface PropertiesPanelProps {
   onTitleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -152,10 +152,30 @@ export default function PropertiesPanel({
   const handleBgColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!selectedComponent) return;
 
-    const newColor = e.target.value;
+    const newColor = e.target.value || undefined;
     setComponents((prev) => {
       const updatedComponents = prev.map((comp) =>
         comp.id === selectedComponent ? { ...comp, bg_color: newColor } : comp
+      );
+      setPythonCode(
+        generateTkinterCode(
+          updatedComponents,
+          windowTitle,
+          dropzoneSize.width,
+          dropzoneSize.height,
+          windowBackground
+        )
+      );
+      return updatedComponents;
+    });
+  };
+
+  const handleClearBgColor = () => {
+    if (!selectedComponent) return;
+
+    setComponents((prev) => {
+      const updatedComponents = prev.map((comp) =>
+        comp.id === selectedComponent ? { ...comp, bg_color: undefined } : comp
       );
       setPythonCode(
         generateTkinterCode(
@@ -411,18 +431,26 @@ export default function PropertiesPanel({
                   />
                   <Separator className="mt-3"/>
                 </div>
-                
               )}
               {canChangeCheckBoxStyles(selectedComp.name) && (
                 <div className="space-y-3">
                   <div>
                     <label className="text-sm font-medium">Background Color</label>
-                    <Input
-                      type="color"
-                      value={selectedComp.bg_color || windowBackground}
-                      onChange={handleBgColorChange}
-                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                    />
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="color"
+                        value={selectedComp.bg_color || ""}
+                        onChange={handleBgColorChange}
+                        className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5 w-full"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearBgColor}
+                      >
+                        Clear
+                      </Button>
+                    </div>
                     <Separator className="mt-3"/>
                   </div>
                 </div>
@@ -431,12 +459,21 @@ export default function PropertiesPanel({
                 <div className="space-y-3">
                   <div>
                     <label className="text-sm font-medium">Background Color</label>
-                    <Input
-                      type="color"
-                      value={selectedComp.bg_color || windowBackground}
-                      onChange={handleBgColorChange}
-                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                    />
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="color"
+                        value={selectedComp.bg_color || ""}
+                        onChange={handleBgColorChange}
+                        className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5 w-full"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearBgColor}
+                      >
+                        Clear
+                      </Button>
+                    </div>
                     <Separator className="mt-3"/>
                   </div>
                   <div>
@@ -465,12 +502,21 @@ export default function PropertiesPanel({
                 <div className="space-y-3">
                   <div>
                     <label className="text-sm font-medium">Background Color</label>
-                    <Input
-                      type="color"
-                      value={selectedComp.bg_color || "#3b82f6"}
-                      onChange={handleBgColorChange}
-                      className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5"
-                    />
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        type="color"
+                        value={selectedComp.bg_color || "#3b82f6"}
+                        onChange={handleBgColorChange}
+                        className="mt-1 rounded-sm focus:ring-0 text-sm py-1.5 w-full"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearBgColor}
+                      >
+                        Clear
+                      </Button>
+                    </div>
                     <Separator className="mt-3"/>
                   </div>
                   <div>
