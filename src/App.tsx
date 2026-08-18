@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { toast } from "sonner";
@@ -28,17 +28,30 @@ import PropertiesPanel from "@/components/PropertiesPanel";
 import CustomDragLayer from "@/components/CustomDragLayer";
 import { NumberField } from "@/components/NumberField";
 import { generateTkinterCode } from "@/codegen/generate";
+import { parseTkinterCode } from "@/codegen/parse";
 import { editorReducer, initialEditorState } from "@/state/editorReducer";
+import { loadPersisted, persist } from "@/state/persist";
 import { WIDGET_KINDS } from "@/widgets";
 import type { WidgetKind } from "@/types";
 
 function App() {
-  const [state, dispatch] = useReducer(editorReducer, initialEditorState);
+  const [state, dispatch] = useReducer(
+    editorReducer,
+    initialEditorState,
+    // Survive a page reload; the .py file remains the portable format.
+    (fallback) => loadPersisted() ?? fallback
+  );
   const [fileName, setFileName] = useState("my-portfolio");
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // The Python code is derived, never stored: it cannot drift from the state.
   const pythonCode = useMemo(() => generateTkinterCode(state), [state]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => persist(state), 300);
+    return () => clearTimeout(timer);
+  }, [state]);
 
   const handleDrop = useCallback(
     (name: WidgetKind, x: number, y: number) =>
@@ -73,6 +86,28 @@ function App() {
   const handleSavePortfolio = () => {
     downloadPython(fileName);
     setIsSaveDialogOpen(false);
+  };
+
+  const handleOpenFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Reset first, so picking the same file twice still fires a change event.
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      // The file is read as text and parsed statically. It is never executed.
+      const { state: loaded, warnings } = parseTkinterCode(await file.text());
+      dispatch({ type: "load", state: loaded });
+      setFileName(file.name.replace(/\.py$/i, ""));
+      toast.success(
+        `Loaded ${loaded.components.length} widget(s) from ${file.name}`
+      );
+      for (const warning of warnings) toast.warning(warning);
+    } catch (error) {
+      toast.error(`Could not load ${file.name}`, {
+        description: (error as Error).message,
+      });
+    }
   };
 
   const handleCopyCode = () => {
@@ -177,6 +212,20 @@ function App() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Load Portfolio
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".py,text/x-python"
+                    className="hidden"
+                    onChange={handleOpenFile}
+                  />
                   <ModeToggle />
                 </TabsList>
 

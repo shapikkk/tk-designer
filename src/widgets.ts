@@ -75,12 +75,12 @@ export const WIDGETS: Record<WidgetKind, WidgetSpec> = {
   },
   Entry: {
     label: "Entry",
-    defaults: { text: "" },
+    defaults: {},
     editable: [],
   },
   ListBox: {
     label: "ListBox",
-    defaults: { text: "" },
+    defaults: {},
     editable: [],
   },
 };
