@@ -15,7 +15,14 @@ npm install
 npm run dev      # http://localhost:5173
 npm run build    # static output in dist/
 npm run lint
+npm test         # vitest run  (npm run test:watch to iterate)
 ```
+
+The tests cover the lexer, the parser and the `editor → .py → editor` round
+trip. They are the safety net for the hand-written Python subset parser: every
+escaping rule and every value that the file format has to carry is asserted, so
+a regression in the generator shows up as a failing round trip rather than as a
+corrupted project someone loads a week later.
 
 ## How saving and loading work
 
