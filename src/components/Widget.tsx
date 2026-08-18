@@ -1,86 +1,45 @@
 import { useDrag } from "react-dnd";
-import { Ref, forwardRef, useContext } from "react";
-import { ConnectDragSource } from "react-dnd";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/components/theme-provider";
+import type { WidgetKind } from "@/types";
+import { WIDGETS } from "@/widgets";
 
 interface WidgetProps {
-  name: string;
+  name: WidgetKind;
 }
 
-type WidgetRef = ConnectDragSource | null;
-
-const Widget = forwardRef<WidgetRef, WidgetProps>(({ name }, ref) => {
-  const { theme } = useTheme();
-
+/** Icon and name rather than a live preview: the preview belongs on the canvas. */
+export default function Widget({ name }: WidgetProps) {
+  const ref = useRef<HTMLDivElement>(null);
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "widget",
     item: { name },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
+    collect: (monitor) => ({ isDragging: !!monitor.isDragging() }),
   }));
 
-  const getTextColor = () => {
-    return theme === "dark" ? "text-white" : "text-black";
-  };
+  useEffect(() => {
+    drag(ref);
+  }, [drag]);
 
-  const getWidgetStyles = () => {
-    switch (name) {
-      case "Button":
-        return "px-4 py-2 rounded-[6px] flex items-center justify-center transition-colors duration-200 bg-[#3b82f6] hover:bg-[#2563eb] w-[140px] h-[28px]";
-      case "Labels":
-        return "px-2 py-1 flex items-center";
-      case "Entry":
-        return "text-black border border-[#d1d5db] px-3 py-1 rounded-[6px] w-[140px] h-[28px] flex items-center justify-center";
-      case "CheckBox":
-        return "flex items-center space-x-2 w-[100px] h-[24px]";
-      case "RadioButton":
-        return "flex items-center space-x-2 w-[100px] h-[22px]";
-      case "ListBox":
-        return "text-black border border-[#d1d5db] p-2 w-[100px] h-[80px] flex items-start";
-      default:
-        return "";
-    }
-  };
+  const { label, icon: Icon } = WIDGETS[name];
 
   return (
     <div
-      ref={drag as unknown as Ref<HTMLDivElement>}
+      ref={ref}
+      title={`Drag ${label} onto the canvas`}
       className={cn(
-        "cursor-move select-none font-sans",
-        getWidgetStyles(),
-        getTextColor(),
-        isDragging && "opacity-50"
+        "group flex items-center gap-2.5 rounded-md border border-transparent",
+        "px-2.5 py-2 text-sm cursor-grab select-none",
+        "transition-colors duration-150",
+        "hover:border-border hover:bg-accent active:cursor-grabbing",
+        isDragging && "opacity-40"
       )}
-      style={{
-        minWidth: "fit-content",
-        minHeight: "fit-content",
-      }}
     >
-      {name === "CheckBox" ? (
-        <div className="flex items-center">
-          <div className="w-5 h-5 border-2 border-[#d1d5db] rounded-[4px] mr-2" />
-          <span className="truncate">{name}</span>
-        </div>
-      ) : name === "RadioButton" ? (
-        <div className="flex items-center">
-          <div className="w-5 h-5 border-2 border-[#d1d5db] rounded-full mr-2" />
-          <span className="truncate">{name}</span>
-        </div>
-      ) : name === "ListBox" ? (
-        <div className="text-sm">
-          Item 1<br />Item 2<br />Item 3
-        </div>
-      ) : name === "Entry" ? (
-        "Entry"
-      ) : (
-        <span className="truncate">{name}</span>
-      )}
+      <Icon
+        className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
+        strokeWidth={1.75}
+      />
+      <span className="truncate">{label}</span>
     </div>
   );
-});
-
-Widget.displayName = "Widget";
-
-export default Widget;
+}

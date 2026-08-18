@@ -1,69 +1,45 @@
 import { useDragLayer } from "react-dnd";
-import { cn } from "@/lib/utils";
+import type { Component, WidgetKind } from "@/types";
+import { WIDGETS } from "@/widgets";
+import { WidgetPreview } from "@/components/WidgetPreview";
 
-const CustomDragLayer = () => {
-  const { isDragging, item, currentOffset } = useDragLayer((monitor) => ({
-    item: monitor.getItem(),
+interface DragItem {
+  name: WidgetKind;
+  /** Present when dragging a widget that is already on the canvas, so the
+   *  ghost shows the user's actual styling rather than the defaults. */
+  comp?: Component;
+}
+
+export default function CustomDragLayer() {
+  const { isDragging, item, offset } = useDragLayer((monitor) => ({
+    item: monitor.getItem() as DragItem | null,
     isDragging: monitor.isDragging(),
-    currentOffset: monitor.getSourceClientOffset(),
+    offset: monitor.getSourceClientOffset(),
   }));
 
-  if (!isDragging || !currentOffset) {
-    return null;
-  }
+  if (!isDragging || !offset || !item?.name) return null;
 
-  const getWidgetStyles = (name: string) => {
-    switch (name) {
-      case "Button":
-        return "bg-[#3b82f6] text-white px-4 py-2 rounded-[6px] hover:bg-[#2563eb] transition-colors w-[140px] h-[28px] flex items-center justify-center";
-      case "Labels":
-        return "text-black px-2 py-1";
-      case "Entry":
-        return "bg-white text-black border border-[#d1d5db] px-3 py-1 rounded-[6px] w-[140px] h-[28px]";
-      case "CheckBox":
-        return "flex items-center space-x-2 text-black w-[100px] h-[24px]";
-      case "RadioButton":
-        return "flex items-center space-x-2 text-black w-[100px] h-[22px]";
-      case "ListBox":
-        return "bg-white text-black border border-[#d1d5db] p-2 w-[100px] h-[80px]";
-      case "Message":
-        return "text-black px-2 py-1";
-      default:
-        return "";
-    }
-  };
+  const comp: Component =
+    item.comp ??
+    ({
+      id: "drag-preview",
+      name: item.name,
+      x: 0,
+      y: 0,
+      ...WIDGETS[item.name].defaults,
+    } as Component);
 
   return (
-    <div
+    <WidgetPreview
+      comp={comp}
       style={{
         position: "fixed",
         pointerEvents: "none",
         zIndex: 100,
-        left: currentOffset.x,
-        top: currentOffset.y,
-        opacity: 0.7,
+        left: offset.x,
+        top: offset.y,
+        opacity: 0.85,
       }}
-      className={cn("font-sans", getWidgetStyles(item.name))}
-    >
-      {item.name === "CheckBox" ? (
-        <div className="flex items-center">
-          <div className="w-4 h-4 border-2 border-[#cccccc] rounded-[2px] mr-2" />
-          {item.name}
-        </div>
-      ) : item.name === "RadioButton" ? (
-        <div className="flex items-center">
-          <div className="w-5 h-5 border-2 border-[#d1d5db] rounded-full mr-2" />
-          {item.name}
-        </div>
-      ) : item.name === "ListBox" ? (
-        <div className="text-sm">
-          Item 1<br />Item 2<br />Item 3
-        </div>
-      ) : (
-        item.name
-      )}
-    </div>
+    />
   );
-};
-
-export default CustomDragLayer;
+}
