@@ -1,31 +1,13 @@
-interface Component {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-  text?: string;
-  width?: number;
-  height?: number;
-  text_color?: string;
-  bg_color?: string;
-  border_width?: number;
-  border_radius?: number;
-  border_color?: string;
-  font_size?: number;
-  enable_hover?: boolean;
-  hover_bg_color?: string;
-  font_family?: string;
-}
+import type { EditorState } from "@/types";
 
-export const generateTkinterCode = (
-  components: Component[],
-  windowTitle: string,
-  width: string | number,
-  height: string | number,
-  windowBackground: string
-): string => {
-  const widthPx = typeof width === "string" && width.endsWith("px") ? parseInt(width) : 1368;
-  const heightPx = typeof height === "string" && height.endsWith("px") ? parseInt(height) : 700;
+export const generateTkinterCode = (state: EditorState): string => {
+  const {
+    components,
+    windowTitle,
+    windowBackground,
+    canvasWidth: widthPx,
+    canvasHeight: heightPx,
+  } = state;
 
   let code = "";
   code += "import tkinter as tk\n";
