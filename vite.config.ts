@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ["localhost", "127.0.0.1", "70cb-188-163-53-16.ngrok-free.app"],
+    allowedHosts: ["localhost", "127.0.0.1", "server.customtk-builder.pp.ua", "customtk-builder.pp.ua"],
     // host: true,
     // port: 5173,
   },

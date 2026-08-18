@@ -28,7 +28,7 @@ interface DraggableComponentProps {
 type DraggableComponentRef = ConnectDragSource | null;
 
 const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentProps>(
-  ({ comp, updateComponentPosition, isSelected, onSelect }, ref) => {
+  ({ comp, isSelected, onSelect }) => {
     const divRef = useRef<HTMLDivElement>(null);
     const [{ isDragging }, drag] = useDrag(() => ({
       type: "placed-component",
@@ -128,7 +128,7 @@ const DraggableComponent = forwardRef<DraggableComponentRef, DraggableComponentP
 DraggableComponent.displayName = "DraggableComponent";
 
 const Dropzone = forwardRef<DropzoneRef, DropzoneProps>(
-  ({ onDrop, width, height, components, updateComponentPosition, selectedComponent, setSelectedComponent, windowBackground }, ref) => {
+  ({ onDrop, width, height, components, updateComponentPosition, selectedComponent, setSelectedComponent, windowBackground }) => {
     const dropzoneRef = useRef<HTMLDivElement>(null);
 
     const [{ isOver }, drop] = useDrop(() => ({

@@ -1,5 +1,5 @@
 import { useDrag } from "react-dnd";
-import { Ref, forwardRef, useContext } from "react";
+import { Ref, forwardRef } from "react";
 import { ConnectDragSource } from "react-dnd";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
@@ -10,7 +10,7 @@ interface WidgetProps {
 
 type WidgetRef = ConnectDragSource | null;
 
-const Widget = forwardRef<WidgetRef, WidgetProps>(({ name }, ref) => {
+const Widget = forwardRef<WidgetRef, WidgetProps>(({ name }) => {
   const { theme } = useTheme();
 
   const [{ isDragging }, drag] = useDrag(() => ({

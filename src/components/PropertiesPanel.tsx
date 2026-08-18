@@ -377,7 +377,7 @@ export default function PropertiesPanel({
   };
 
   return (
-    <ScrollArea className="h-[900px] w-[350px] rounded-md border p-4 mt-6">
+    <ScrollArea className="h-[885px] w-[350px] rounded-md border p-4 mt-6">
       <div className="w-64 p-4 border-l">
         <h2 className="text-lg font-semibold mb-3">Properties</h2>
         <div className="space-y-3">

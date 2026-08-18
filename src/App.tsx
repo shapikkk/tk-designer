@@ -20,7 +20,7 @@ import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 import SignUp from "./components/signupForm";
 import { LoginForm } from "./components/login-form";
 import { NavUser } from "./components/NavUser";
-import { PortfolioSidebar } from "./components/PortfolioSideBar";
+import { PortfolioSidebar } from "./components/PortfolioSidebar";
 import {
   Dialog,
   DialogContent,
@@ -77,11 +77,12 @@ function App() {
   const [portfolios, setPortfolios] = useState<{ _id: string; name: string; createdAt: string }[]>([]);
   const [portfolioName, setPortfolioName] = useState("");
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
-
+  
+  // token auth
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      fetch("http://localhost:5170/api/auth/me", {
+      fetch("https://server.customtk-builder.pp.ua/api/auth/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -128,7 +129,6 @@ function App() {
     }[widgetName];
 
     const initialSizes = widgetName === "Button" ? { width: 140, height: 28 } : {};
-    const initialTextColor = ["Button", "Labels", "CheckBox", "RadioButton"].includes(widgetName) ? "#000000" : undefined;
     const initialButtonProps = widgetName === "Button" ? {
       bg_color: "#3b82f6",
       border_width: 0,
@@ -246,14 +246,6 @@ function App() {
     );
   };
 
-  const handleWindowBackgroundChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newColor = e.target.value;
-    setWindowBackground(newColor);
-    setPythonCode(
-      generateTkinterCode(components, windowTitle, dropzoneSize.width, dropzoneSize.height, newColor)
-    );
-  };
-
   const handleCopyCode = () => {
     navigator.clipboard.writeText(pythonCode).then(() => {
       toast.success("Code copied to clipboard!", {
@@ -312,7 +304,7 @@ function App() {
 
   const fetchPortfolios = async (token: string) => {
     try {
-      const response = await fetch("http://localhost:5170/api/portfolio", {
+      const response = await fetch("https://server.customtk-builder.pp.ua/api/portfolio", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -351,7 +343,7 @@ function App() {
       if (!token) {
         throw new Error("No token available");
       }
-      const response = await fetch("http://localhost:5170/api/portfolio", {
+      const response = await fetch("https://server.customtk-builder.pp.ua/api/portfolio", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -391,7 +383,7 @@ function App() {
       if (!token) {
         throw new Error("No token available");
       }
-      fetch(`http://localhost:5170/api/portfolio/${portfolio._id}`, {
+      fetch(`https://server.customtk-builder.pp.ua/api/portfolio/${portfolio._id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -437,7 +429,7 @@ function App() {
       if (!token) {
         throw new Error("No token available");
       }
-      const response = await fetch(`http://localhost:5170/api/portfolio/${portfolioId}`, {
+      const response = await fetch(`https://server.customtk-builder.pp.ua/api/portfolio/${portfolioId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -488,7 +480,8 @@ function App() {
                       )}
                       <div className="text-xs">
                         <p>Contact us</p>
-                        <p>Copyright © 2025 tk-designer.com</p>
+                        <p>Copyright © 2025</p>
+                        <p>customtk-builder.pp.ua</p>
                       </div>
                     </div>
                   </div>

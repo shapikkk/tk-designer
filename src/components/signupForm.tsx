@@ -17,7 +17,7 @@ export default function SignUp() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:5170/api/auth/signup", {
+      const response = await fetch("https://server.customtk-builder.pp.ua/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
