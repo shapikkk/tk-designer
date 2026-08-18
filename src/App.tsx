@@ -1,13 +1,28 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { toast } from "sonner";
-import { Copy } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Download,
+  ExternalLink,
+  Eye,
+  FileCode2,
+  FolderOpen,
+  LayoutPanelLeft,
+} from "lucide-react";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +58,7 @@ function App() {
   );
   const [fileName, setFileName] = useState("my-portfolio");
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // The Python code is derived, never stored: it cannot drift from the state.
@@ -52,6 +68,31 @@ function App() {
     const timer = setTimeout(() => persist(state), 300);
     return () => clearTimeout(timer);
   }, [state]);
+
+  // Canvas keyboard shortcuts, ignored while the user is typing in a field.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.isContentEditable ||
+          ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
+      ) {
+        return;
+      }
+      if (event.key === "Escape") {
+        dispatch({ type: "select", id: null });
+      } else if (
+        (event.key === "Delete" || event.key === "Backspace") &&
+        state.selectedId
+      ) {
+        event.preventDefault();
+        dispatch({ type: "remove", id: state.selectedId });
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [state.selectedId]);
 
   const handleDrop = useCallback(
     (name: WidgetKind, x: number, y: number) =>
@@ -113,11 +154,10 @@ function App() {
   const handleCopyCode = () => {
     navigator.clipboard
       .writeText(pythonCode)
-      .then(() =>
-        toast.success("Code copied to clipboard!", {
-          icon: <Copy className="h-4 w-4" />,
-        })
-      )
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      })
       .catch(() => toast.error("Failed to copy code"));
   };
 
@@ -131,105 +171,135 @@ function App() {
     const pre = newWindow.document.createElement("pre");
     pre.textContent = pythonCode;
     pre.style.cssText =
-      "white-space:pre-wrap;word-wrap:break-word;font-family:monospace";
+      "white-space:pre-wrap;word-wrap:break-word;font-family:ui-monospace,monospace";
     newWindow.document.title = "Raw Python Code";
     newWindow.document.body.style.cssText =
-      "background:#1a1a1a;color:#fff;padding:20px";
+      "background:#0e0f13;color:#e6e8ee;padding:24px;margin:0";
     newWindow.document.body.appendChild(pre);
   };
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <DndProvider backend={HTML5Backend}>
-        <div className="flex min-h-screen">
-          <div className="w-60 p-4 flex flex-col justify-between">
-            <div>
-              <h2 className="text-lg font-semibold mb-3">Core Widgets</h2>
-              <div className="space-y-1.5">
-                {WIDGET_KINDS.map((widget) => (
-                  <Widget key={widget} name={widget} />
-                ))}
-              </div>
+        <Tabs
+          defaultValue="visual"
+          className="flex h-screen flex-col gap-0 bg-workspace"
+        >
+          <header className="flex h-12 shrink-0 items-center gap-3 border-b bg-background px-3">
+            <div className="flex items-center gap-2 pr-1">
+              <LayoutPanelLeft
+                className="size-[18px] text-primary"
+                strokeWidth={1.75}
+              />
+              <span className="text-sm font-semibold tracking-tight">
+                Tk Designer
+              </span>
             </div>
-            <div className="mt-4 text-xs">
-              <p>Contact us</p>
-              <p>Copyright © 2025</p>
-              <p>customtk-builder.pp.ua</p>
-            </div>
-          </div>
 
-          <div className="flex flex-1">
-            <div className="flex-[2] p-3">
-              <Tabs defaultValue="visual" className="w-full">
-                <TabsList className="mb-3 flex gap-3">
-                  <TabsTrigger
-                    value="visual"
-                    className="px-3 py-1 rounded-none text-sm"
-                  >
-                    <img src="/assets/eyecode.svg" alt="" />
-                    Visual
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="python"
-                    className="px-3 py-1 rounded-none text-sm"
-                  >
-                    <img src="/assets/sellector.svg" alt="" />
-                    Python
-                  </TabsTrigger>
-                  <Dialog
-                    open={isSaveDialogOpen}
-                    onOpenChange={setIsSaveDialogOpen}
-                  >
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Save Portfolio
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Save Portfolio</DialogTitle>
-                        <DialogDescription>
-                          Your project is saved as a Python file you can open
-                          again later.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid grid-cols-4 items-center gap-4 py-4">
-                        <Label htmlFor="file-name" className="text-right">
-                          File name
-                        </Label>
-                        <Input
-                          id="file-name"
-                          value={fileName}
-                          onChange={(e) => setFileName(e.target.value)}
-                          className="col-span-3"
-                          placeholder="my-portfolio"
-                        />
-                      </div>
-                      <DialogFooter>
-                        <Button type="button" onClick={handleSavePortfolio}>
-                          Download .py
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+            <div className="h-5 w-px bg-border" />
+
+            <TabsList className="h-8 gap-0.5 bg-muted p-0.5">
+              <TabsTrigger value="visual" className="h-7 gap-1.5 px-2.5 text-xs">
+                <Eye className="size-3.5" strokeWidth={1.75} />
+                Visual
+              </TabsTrigger>
+              <TabsTrigger value="python" className="h-7 gap-1.5 px-2.5 text-xs">
+                <FileCode2 className="size-3.5" strokeWidth={1.75} />
+                Python
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="ml-auto flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5"
+                title="Open a .py file saved from this editor"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FolderOpen className="size-4" strokeWidth={1.75} />
+                Load
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".py,text/x-python"
+                className="hidden"
+                onChange={handleOpenFile}
+              />
+
+              <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                <DialogTrigger asChild>
                   <Button
-                    variant="outline"
                     size="sm"
-                    onClick={() => fileInputRef.current?.click()}
+                    className="gap-1.5"
+                    title="Download this project as a Python file"
                   >
-                    Load Portfolio
+                    <Download className="size-4" strokeWidth={1.75} />
+                    Save
                   </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".py,text/x-python"
-                    className="hidden"
-                    onChange={handleOpenFile}
-                  />
-                  <ModeToggle />
-                </TabsList>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[420px]">
+                  <DialogHeader>
+                    <DialogTitle>Save portfolio</DialogTitle>
+                    <DialogDescription>
+                      Downloads a runnable CustomTkinter file. Load it back here
+                      any time to keep editing.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-2 py-2">
+                    <Label htmlFor="file-name">File name</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="file-name"
+                        value={fileName}
+                        onChange={(e) => setFileName(e.target.value)}
+                        placeholder="my-portfolio"
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && handleSavePortfolio()
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">.py</span>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleSavePortfolio} className="gap-1.5">
+                      <Download className="size-4" strokeWidth={1.75} />
+                      Download
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
-                <TabsContent value="visual">
+              <div className="mx-0.5 h-5 w-px bg-border" />
+              <ModeToggle />
+            </div>
+          </header>
+
+          <div className="flex min-h-0 flex-1">
+            <aside className="scroll-slim flex w-56 shrink-0 flex-col justify-between overflow-y-auto border-r bg-background">
+              <div className="p-3">
+                <h2 className="px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Widgets
+                </h2>
+                <div className="space-y-0.5">
+                  {WIDGET_KINDS.map((widget) => (
+                    <Widget key={widget} name={widget} />
+                  ))}
+                </div>
+              </div>
+              <footer className="p-4 text-[11px] leading-relaxed text-muted-foreground">
+                <p>Runs entirely in your browser.</p>
+                <p>Copyright © 2025</p>
+              </footer>
+            </aside>
+
+            <main className="min-w-0 flex-1 overflow-hidden">
+              <TabsContent
+                value="visual"
+                className="scroll-slim h-full overflow-auto p-8 data-[state=active]:animate-in data-[state=active]:fade-in-0"
+              >
+                <div className="flex min-h-full min-w-fit flex-col items-center gap-4">
                   <Dropzone
                     width={state.canvasWidth}
                     height={state.canvasHeight}
@@ -240,7 +310,8 @@ function App() {
                     updateComponentPosition={handleMove}
                     setSelectedComponent={handleSelect}
                   />
-                  <div className="mt-3 flex gap-2">
+                  <div className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 shadow-sm">
+                    <span className="text-xs text-muted-foreground">Window</span>
                     <NumberField
                       aria-label="Window width in pixels"
                       value={state.canvasWidth}
@@ -249,8 +320,9 @@ function App() {
                       onCommit={(canvasWidth) =>
                         dispatch({ type: "setWindow", patch: { canvasWidth } })
                       }
-                      className="rounded-sm focus:ring-0 text-sm py-1.5"
+                      className="h-7 w-20 text-xs"
                     />
+                    <span className="text-xs text-muted-foreground">×</span>
                     <NumberField
                       aria-label="Window height in pixels"
                       value={state.canvasHeight}
@@ -259,44 +331,72 @@ function App() {
                       onCommit={(canvasHeight) =>
                         dispatch({ type: "setWindow", patch: { canvasHeight } })
                       }
-                      className="rounded-sm focus:ring-0 text-sm py-1.5"
+                      className="h-7 w-20 text-xs"
                     />
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      {state.components.length} widget
+                      {state.components.length === 1 ? "" : "s"}
+                    </span>
                   </div>
-                </TabsContent>
+                </div>
+              </TabsContent>
 
-                <TabsContent value="python">
-                  <div className="relative">
-                    <ScrollArea className="w-full h-[700px] rounded-sm border">
-                      <div
-                        className="p-2 font-mono text-sm"
-                        style={{ whiteSpace: "pre-wrap" }}
+              <TabsContent
+                value="python"
+                className="scroll-slim relative h-full overflow-hidden p-8 data-[state=active]:animate-in data-[state=active]:fade-in-0"
+              >
+                <div className="relative h-full overflow-hidden rounded-lg border bg-background shadow-sm">
+                  <div className="flex h-10 items-center justify-between border-b px-3">
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {fileName || "portfolio"}.py
+                    </span>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={handleRawCode}
                       >
-                        {pythonCode}
-                      </div>
-                    </ScrollArea>
-                    <div className="absolute top-2 right-2 flex gap-2 z-10">
-                      <Button variant="outline" size="sm" onClick={handleRawCode}>
+                        <ExternalLink className="size-3.5" strokeWidth={1.75} />
                         Raw
                       </Button>
-                      <Button variant="outline" size="sm" onClick={handleCopyCode}>
-                        Copy
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={handleCopyCode}
+                      >
+                        {copied ? (
+                          <Check
+                            className="size-3.5 text-primary"
+                            strokeWidth={2}
+                          />
+                        ) : (
+                          <Copy className="size-3.5" strokeWidth={1.75} />
+                        )}
+                        {copied ? "Copied" : "Copy"}
                       </Button>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
+                        className="gap-1.5"
                         onClick={() => downloadPython(fileName)}
                       >
-                        Download raw file
+                        <Download className="size-3.5" strokeWidth={1.75} />
+                        Download
                       </Button>
                     </div>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </div>
+                  <pre className="scroll-slim h-[calc(100%-2.5rem)] overflow-auto p-4 font-mono text-[13px] leading-relaxed">
+                    {pythonCode}
+                  </pre>
+                </div>
+              </TabsContent>
+            </main>
 
             <PropertiesPanel state={state} dispatch={dispatch} />
           </div>
-        </div>
+        </Tabs>
         <CustomDragLayer />
         <Toaster />
       </DndProvider>

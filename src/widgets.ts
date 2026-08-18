@@ -1,3 +1,12 @@
+import {
+  CircleDot,
+  List,
+  RectangleHorizontal,
+  SquareCheck,
+  TextCursorInput,
+  Type,
+  type LucideIcon,
+} from "lucide-react";
 import type { Component, WidgetKind } from "@/types";
 
 export type EditableProp =
@@ -17,6 +26,8 @@ export type EditableProp =
 interface WidgetSpec {
   /** Label shown in the widget palette. */
   label: string;
+  /** Palette icon. One library, one stroke weight, across the whole app. */
+  icon: LucideIcon;
   /** Applied when the widget is first dropped on the canvas. */
   defaults: Omit<Partial<Component>, "id" | "name" | "x" | "y">;
   /** Which properties the Properties panel offers for this widget. */
@@ -26,6 +37,7 @@ interface WidgetSpec {
 export const WIDGETS: Record<WidgetKind, WidgetSpec> = {
   Labels: {
     label: "Label",
+    icon: Type,
     defaults: {
       text: "Label",
       text_color: "#000000",
@@ -36,6 +48,7 @@ export const WIDGETS: Record<WidgetKind, WidgetSpec> = {
   },
   Button: {
     label: "Button",
+    icon: RectangleHorizontal,
     defaults: {
       text: "Button",
       width: 140,
@@ -65,21 +78,25 @@ export const WIDGETS: Record<WidgetKind, WidgetSpec> = {
   },
   CheckBox: {
     label: "CheckBox",
+    icon: SquareCheck,
     defaults: { text: "CheckBox", text_color: "#000000" },
     editable: ["text", "text_color", "bg_color"],
   },
   RadioButton: {
     label: "RadioButton",
+    icon: CircleDot,
     defaults: { text: "RadioButton", text_color: "#000000" },
     editable: ["text", "text_color", "bg_color"],
   },
   Entry: {
     label: "Entry",
+    icon: TextCursorInput,
     defaults: {},
     editable: [],
   },
   ListBox: {
     label: "ListBox",
+    icon: List,
     defaults: {},
     editable: [],
   },

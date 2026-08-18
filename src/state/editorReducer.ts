@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from "uuid";
 import type { Component, EditorState, WidgetKind } from "@/types";
 import { WIDGETS } from "@/widgets";
 
-export const DEFAULT_CANVAS_WIDTH = 1368;
-export const DEFAULT_CANVAS_HEIGHT = 700;
+export const DEFAULT_CANVAS_WIDTH = 900;
+export const DEFAULT_CANVAS_HEIGHT = 600;
 
 /** Keeps a dropped or hand-typed widget inside the window it will be placed in.
  *  Both drag and the Properties panel go through here, so there is exactly one

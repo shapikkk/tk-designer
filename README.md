@@ -1,54 +1,76 @@
-# React + TypeScript + Vite
+# Tk Designer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A visual builder for **Tkinter / CustomTkinter** interfaces. Drag widgets onto a
+canvas, edit their properties, and export the result as a runnable Python file —
+then load that same file back to keep editing.
 
-Currently, two official plugins are available:
+The app is entirely client-side. There is no server, no database and no account:
+everything runs in the browser, so it deploys as static files anywhere (Vercel,
+Netlify, GitHub Pages, a plain bucket).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Getting started
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm install
+npm run dev      # http://localhost:5173
+npm run build    # static output in dist/
+npm run lint
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## How saving and loading work
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+`Save` generates a CustomTkinter script and hands it to the browser as a
+download. `Load` reads a `.py` file back into the canvas.
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+The generated file is ordinary, readable Python — not JSON wearing a `.py`
+extension:
+
+```python
+button_1 = ctk.CTkButton(
+    master=root,
+    text="Sign in",
+    fg_color="#3b82f6",
+    hover=True,
+    hover_color="#2563eb",
+    width=140,
+    height=28,
+    font=("Arial", 14),
+    command=on_button_click,
+)
+button_1.place(x=120, y=80)
 ```
+
+**Loading never executes the file.** It is tokenised (`src/codegen/lexer.ts`) and
+pattern-matched (`src/codegen/parse.ts`) — no `eval`, no `Function`, no remote
+call. Statements outside the recognised subset are ignored, so a file you have
+added your own code to still loads; anything skipped is reported in a toast.
+
+Because the generator and the parser both read one widget schema
+(`src/codegen/schema.ts`), a project survives the round-trip
+`editor → .py → editor` with its widgets, order, positions, sizes, text, colours
+and fonts intact. Widget ids are internal and are regenerated on load.
+
+## Layout
+
+```
+src/
+  types.ts              Component and EditorState — the single source of truth
+  widgets.ts            widget catalogue: defaults, palette icon, editable props
+  state/
+    editorReducer.ts    every state change, including coordinate clamping
+    persist.ts          localStorage autosave, validated on read
+  codegen/
+    schema.ts           property <-> CustomTkinter kwarg mapping
+    generate.ts         EditorState -> Python
+    lexer.ts            Python literal tokeniser
+    parse.ts            Python -> EditorState
+  components/           canvas, palette, properties panel, shadcn/ui primitives
+```
+
+The Python code is derived from state with `useMemo`, never stored beside it, so
+the two cannot drift apart.
+
+## Stack
+
+React 19 · TypeScript · Vite · Tailwind v4 · shadcn/ui (Radix) · react-dnd ·
+lucide-react
