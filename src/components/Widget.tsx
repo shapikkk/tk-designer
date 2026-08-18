@@ -8,8 +8,7 @@ interface WidgetProps {
   name: WidgetKind;
 }
 
-/** A palette entry. Deliberately an icon and a name rather than a live preview:
- *  the preview belongs on the canvas, and a uniform list is far easier to scan. */
+/** Icon and name rather than a live preview: the preview belongs on the canvas. */
 export default function Widget({ name }: WidgetProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [{ isDragging }, drag] = useDrag(() => ({

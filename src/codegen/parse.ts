@@ -39,10 +39,6 @@ interface Assignment {
 
 const lastSegment = (dotted: string) => dotted.split(".").pop() as string;
 
-// ---------------------------------------------------------------------------
-// Token-stream helpers
-// ---------------------------------------------------------------------------
-
 /** Reads `name` or `name.name.name`, returning the dotted text. */
 function readDotted(tokens: Token[], start: number): [string, number] {
   let i = start;
@@ -95,7 +91,6 @@ function readValue(tokens: Token[], start: number): [PyValue, number] {
     return [items, i + 1];
   }
 
-  // A minus sign in front of a number
   if (token.kind === "op" && token.value === "-" && tokens[start + 1]?.kind === "number") {
     return [-Number(tokens[start + 1].value), start + 2];
   }
@@ -137,10 +132,6 @@ function readCallArgs(tokens: Token[], start: number): [CallArgs, number] {
   return [args, i + 1];
 }
 
-// ---------------------------------------------------------------------------
-// Value coercion
-// ---------------------------------------------------------------------------
-
 const asString = (v: PyValue | undefined): string | undefined =>
   typeof v === "string" ? v : undefined;
 
@@ -155,10 +146,6 @@ const asNumber = (v: PyValue | undefined): number | undefined =>
 
 const asBool = (v: PyValue | undefined): boolean | undefined =>
   typeof v === "boolean" ? v : undefined;
-
-// ---------------------------------------------------------------------------
-// Parser
-// ---------------------------------------------------------------------------
 
 /** Turns a generated `.py` file back into editor state.
  *

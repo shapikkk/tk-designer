@@ -2,8 +2,8 @@ import type { CSSProperties, ComponentPropsWithRef, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Component, WidgetKind } from "@/types";
 
-/** How each widget renders. This is the only copy: the canvas and the drag
- *  ghost both draw themselves through it, so they cannot look different. */
+/** The only widget rendering in the app: the canvas and the drag ghost both
+ *  draw through it, so they cannot look different. */
 const SHAPE: Record<WidgetKind, string> = {
   Button:
     "px-4 py-2 flex items-center justify-center transition-colors duration-150",

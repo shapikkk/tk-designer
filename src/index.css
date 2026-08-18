@@ -105,8 +105,7 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Numeric fields are for typing, not for spinner-clicking; the arrows only
-     crowd an already dense properties panel. */
+  /* Spinners only crowd an already dense properties panel. */
   input[type="number"]::-webkit-outer-spin-button,
   input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -132,7 +131,6 @@
 }
 
 @layer utilities {
-  /* Panel scrollbars: present when needed, never a design element. */
   .scroll-slim {
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;

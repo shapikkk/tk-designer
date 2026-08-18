@@ -82,7 +82,6 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
-    // String literal, with optional r/b/f/u prefix
     const prefixMatch = /^[rRbBuUfF]{0,2}(['"])/.exec(source.slice(i, i + 4));
     if (prefixMatch) {
       const startLine = line;

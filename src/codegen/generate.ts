@@ -22,7 +22,6 @@ const fieldLiteral = (comp: Component, field: Field): string => {
     case "text":
       return pyString(typeof raw === "string" ? raw : "");
     case "color":
-      // undefined background means "inherit the window background"
       return pyString(typeof raw === "string" && raw ? raw : TRANSPARENT);
     case "number":
       return String(typeof raw === "number" ? raw : 0);

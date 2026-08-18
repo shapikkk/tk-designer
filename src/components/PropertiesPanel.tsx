@@ -95,8 +95,6 @@ export default function PropertiesPanel({
 }: PropertiesPanelProps) {
   const selected = state.components.find((c) => c.id === state.selectedId);
 
-  // Every property edit is the same operation, so there is one handler for all
-  // of them rather than one per field.
   const patch = (values: Partial<Component>) => {
     if (!selected) return;
     dispatch({ type: "update", id: selected.id, patch: values });
