@@ -16,6 +16,7 @@ interface Resolved {
   bg?: string;
   accent?: string;
   track?: string;
+  knob?: string;
   borderColor?: string;
   borderWidth: number;
   radius: number;
@@ -53,6 +54,7 @@ function resolve(comp: Component, widget: WidgetDef): Resolved {
     bg: str(visual.bg),
     accent: str(visual.accent),
     track: str(visual.track),
+    knob: str(visual.knob),
     borderColor: str(visual.borderColor),
     borderWidth: num(visual.borderWidth) ?? 0,
     radius: num(visual.radius) ?? 0,
@@ -158,7 +160,7 @@ function shapeContent(
                 right: 2,
                 width: (values.height ?? 20) - 4,
                 height: (values.height ?? 20) - 4,
-                backgroundColor: values.bg ?? "#ffffff",
+                backgroundColor: values.knob ?? "#ffffff",
               }}
             />
           </span>
@@ -192,7 +194,7 @@ function shapeContent(
                 width: 16,
                 height: 16,
                 marginLeft: -8,
-                backgroundColor: values.bg ?? values.accent ?? "#2563eb",
+                backgroundColor: values.knob ?? values.bg ?? "#2563eb",
               }}
             />
           </span>

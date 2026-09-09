@@ -63,6 +63,7 @@ export interface VisualMap {
   fg?: string;
   accent?: string;
   track?: string;
+  knob?: string;
   borderWidth?: string;
   borderColor?: string;
   radius?: string;
