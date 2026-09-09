@@ -1,5 +1,5 @@
 import type { Dispatch, ReactNode } from "react";
-import { Copy, MousePointer2, Trash2 } from "lucide-react";
+import { Copy, MousePointer2, Trash2, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -259,11 +259,15 @@ function PropField({
 interface PropertiesPanelProps {
   state: EditorState;
   dispatch: Dispatch<EditorAction>;
+  className?: string;
+  onClose?: () => void;
 }
 
 export default function PropertiesPanel({
   state,
   dispatch,
+  className,
+  onClose,
 }: PropertiesPanelProps) {
   const doc = activeDoc(state);
   const framework = getFramework(state.framework);
@@ -283,7 +287,29 @@ export default function PropertiesPanel({
     : [];
 
   return (
-    <aside className="scroll-slim flex w-[320px] shrink-0 flex-col overflow-y-auto border-l bg-background">
+    <aside
+      className={cn(
+        "scroll-slim flex shrink-0 flex-col overflow-y-auto border-l bg-background",
+        className
+      )}
+    >
+      {onClose && (
+        <div className="flex items-center justify-between border-b px-4 py-2 lg:hidden">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Properties
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="size-7 p-0"
+            onClick={onClose}
+            aria-label="Close properties panel"
+          >
+            <X className="size-4" strokeWidth={1.75} />
+          </Button>
+        </div>
+      )}
+
       <Section title={`${framework.label} window`}>
         <Row label="Title" htmlFor="window-title">
           <Input

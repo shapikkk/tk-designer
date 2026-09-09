@@ -6,7 +6,8 @@ result as a runnable Python file — then load that same file back to keep editi
 
 The app is entirely client-side. There is no server, no database and no account:
 everything runs in the browser, so it deploys as static files anywhere (Vercel,
-Netlify, GitHub Pages, a plain bucket).
+Netlify, GitHub Pages, a plain bucket). It is built for the desktop but works on
+tablets and phones too.
 
 ## Getting started
 
@@ -41,6 +42,30 @@ that library:
 Properties are per-library too: Tkinter offers `relief` and `borderwidth`,
 CustomTkinter offers `corner_radius` and `hover_color`, Flet offers `opacity`,
 `tooltip` and enum values written the idiomatic way (`ft.FontWeight.BOLD`).
+
+## Canvas, window size and zoom
+
+A new project sizes its window from the viewport — 75% of it, snapped to the
+20px grid and clamped to 640-1920 by 480-1200 — so a 1920px screen starts at
+1440x680 rather than at a fixed 900x600. `Auto` in the bar under the canvas
+recomputes that at any time; the two number fields set an exact size, and
+whatever the size is, it is what lands in `root.geometry()` or
+`page.window.width`.
+
+The canvas itself is drawn to scale so the whole window stays visible: `Fit`
+follows the space available, and the zoom controls override it between 25% and
+200%. Zoom is a view setting only — positions, sizes and generated code are
+always in real pixels.
+
+## On smaller screens
+
+Below 1024px the palette and the properties panel become drawers, opened from
+the two panel buttons in the header and closed by tapping the backdrop or
+pressing `Escape`; the header itself wraps and drops to short library names.
+Because HTML5 drag-and-drop does not exist on touch devices, **tapping a widget
+in the palette places it on the canvas**, and a placed widget can be nudged with
+the arrow keys (hold `Shift` for one pixel at a time) or positioned exactly from
+the X/Y fields.
 
 ## How saving and loading work
 
@@ -100,6 +125,9 @@ src/
     customtkinter.ts    palette icon, constructor and preview mapping
     flet.ts
     index.ts            registry and lookup helpers
+  lib/
+    viewport.ts         the window size a new project starts at
+    color.ts            luminance helpers for readable previews
   state/
     editorReducer.ts    every state change, including coordinate clamping
     persist.ts          localStorage autosave, validated on read

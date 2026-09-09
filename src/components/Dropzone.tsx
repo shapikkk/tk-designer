@@ -17,6 +17,7 @@ interface DropzoneProps {
   setSelectedComponent: (id: string | null) => void;
   windowBackground: string;
   showGrid: boolean;
+  scale: number;
 }
 
 export const GRID_SIZE = 20;
@@ -104,6 +105,7 @@ export default function Dropzone({
   setSelectedComponent,
   windowBackground,
   showGrid,
+  scale,
 }: DropzoneProps) {
   const dropzoneRef = useRef<HTMLDivElement>(null);
   const gridColor = isDarkSurface(windowBackground)
@@ -118,18 +120,19 @@ export default function Dropzone({
         const rect = dropzoneRef.current?.getBoundingClientRect();
         if (!offset || !rect) return;
 
-        const x = Math.round((offset.x - rect.left) / GRID_SIZE) * GRID_SIZE;
-        const y = Math.round((offset.y - rect.top) / GRID_SIZE) * GRID_SIZE;
+        const step = GRID_SIZE * scale;
+        const x = (Math.round((offset.x - rect.left) / step) * step) / scale;
+        const y = (Math.round((offset.y - rect.top) / step) * step) / scale;
 
         if (monitor.getItemType() === "widget") {
-          onDrop(item.kind, x, y);
+          onDrop(item.kind, Math.round(x), Math.round(y));
         } else if (item.id) {
-          updateComponentPosition(item.id, x, y);
+          updateComponentPosition(item.id, Math.round(x), Math.round(y));
         }
       },
       collect: (monitor) => ({ isOver: !!monitor.isOver() }),
     }),
-    [onDrop, updateComponentPosition]
+    [onDrop, updateComponentPosition, scale]
   );
 
   return (

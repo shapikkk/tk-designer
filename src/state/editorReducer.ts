@@ -13,34 +13,39 @@ import {
   getFramework,
   getWidget,
 } from "@/frameworks";
-
-export const DEFAULT_CANVAS_WIDTH = 900;
-export const DEFAULT_CANVAS_HEIGHT = 600;
+import type { WindowSize } from "@/lib/viewport";
 
 const clamp = (value: number, max: number) =>
   Math.round(Math.min(Math.max(value, 0), Math.max(max, 0)));
 
-export const emptyDoc = (framework: FrameworkId): FrameworkDoc => {
+export const emptyDoc = (
+  framework: FrameworkId,
+  size?: WindowSize
+): FrameworkDoc => {
   const { defaultWindow } = getFramework(framework);
   return {
     components: [],
     selectedId: null,
     windowTitle: "My App",
     windowBackground: defaultWindow.background,
-    canvasWidth: defaultWindow.width,
-    canvasHeight: defaultWindow.height,
+    canvasWidth: size?.width ?? defaultWindow.width,
+    canvasHeight: size?.height ?? defaultWindow.height,
   };
 };
 
-export const emptyDocs = (): Record<FrameworkId, FrameworkDoc> =>
+export const emptyDocs = (
+  size?: WindowSize
+): Record<FrameworkId, FrameworkDoc> =>
   Object.fromEntries(
-    FRAMEWORK_IDS.map((id) => [id, emptyDoc(id)])
+    FRAMEWORK_IDS.map((id) => [id, emptyDoc(id, size)])
   ) as Record<FrameworkId, FrameworkDoc>;
 
-export const initialEditorState: EditorState = {
+export const createInitialState = (size?: WindowSize): EditorState => ({
   framework: DEFAULT_FRAMEWORK,
-  docs: emptyDocs(),
-};
+  docs: emptyDocs(size),
+});
+
+export const initialEditorState: EditorState = createInitialState();
 
 type WindowPatch = Partial<
   Pick<
@@ -87,7 +92,11 @@ export function editorReducer(
       };
 
     case "clear":
-      return withDoc(state, () => emptyDoc(state.framework));
+      return withDoc(state, (doc) => ({
+        ...doc,
+        components: [],
+        selectedId: null,
+      }));
 
     case "add":
       return withDoc(state, (doc) => {

@@ -1,14 +1,16 @@
 import { useDrag } from "react-dnd";
 import { useEffect, useRef } from "react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WidgetDef } from "@/frameworks/types";
 
 interface WidgetProps {
   widget: WidgetDef;
+  onAdd: (kind: string) => void;
 }
 
-export default function Widget({ widget }: WidgetProps) {
-  const ref = useRef<HTMLDivElement>(null);
+export default function Widget({ widget, onAdd }: WidgetProps) {
+  const ref = useRef<HTMLButtonElement>(null);
   const [{ isDragging }, drag] = useDrag(
     () => ({
       type: "widget",
@@ -25,14 +27,17 @@ export default function Widget({ widget }: WidgetProps) {
   const { label, icon: Icon, ctor } = widget;
 
   return (
-    <div
+    <button
       ref={ref}
-      title={`${ctor} — drag onto the canvas`}
+      type="button"
+      onClick={() => onAdd(widget.key)}
+      title={`${ctor} — drag onto the canvas or tap to add`}
       className={cn(
-        "group flex items-center gap-2.5 rounded-md border border-transparent",
-        "px-2.5 py-[7px] text-sm cursor-grab select-none",
+        "group flex w-full items-center gap-2.5 rounded-md border border-transparent",
+        "px-2.5 py-[7px] text-left text-sm cursor-grab select-none",
         "transition-colors duration-150",
         "hover:border-border hover:bg-accent active:cursor-grabbing",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isDragging && "opacity-40"
       )}
     >
@@ -41,6 +46,10 @@ export default function Widget({ widget }: WidgetProps) {
         strokeWidth={1.75}
       />
       <span className="truncate">{label}</span>
-    </div>
+      <Plus
+        className="ml-auto size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+        strokeWidth={1.75}
+      />
+    </button>
   );
 }

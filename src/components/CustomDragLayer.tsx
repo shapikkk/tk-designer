@@ -12,9 +12,11 @@ interface DragItem {
 export default function CustomDragLayer({
   framework,
   surface,
+  scale,
 }: {
   framework: FrameworkId;
   surface: string;
+  scale: number;
 }) {
   const { isDragging, item, offset } = useDragLayer((monitor) => ({
     item: monitor.getItem() as DragItem | null,
@@ -47,6 +49,8 @@ export default function CustomDragLayer({
         left: offset.x,
         top: offset.y,
         opacity: 0.85,
+        transform: `scale(${scale})`,
+        transformOrigin: "top left",
       }}
     />
   );

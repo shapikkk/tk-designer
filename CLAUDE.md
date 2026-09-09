@@ -80,6 +80,23 @@ through it, so there is one coordinate system. `persist.ts` autosaves to
 `localStorage` (debounced 300ms) and *validates* on read rather than casting,
 dropping widget kinds and prop keys the current build no longer knows.
 
+**Layout and scale.** Below the `lg` breakpoint (1024px) the palette and the
+properties panel become absolutely-positioned drawers inside the content row —
+that row is `overflow-hidden` so the closed right-hand drawer cannot create a
+horizontal scrollbar. `App.tsx` mirrors the breakpoint in JS (`useCompactLayout`)
+only for behaviour that CSS cannot express, such as closing the palette after a
+tap-to-add. HTML5 drag-and-drop does not fire on touch, so `Widget.tsx` is a
+button that adds its widget on click, and the arrow keys nudge the selection.
+
+The canvas is rendered inside a `transform: scale(...)` wrapper whose parent
+reserves the scaled size. **The scale is a view concern only** — every stored
+coordinate stays in real pixels — so `Dropzone` divides the pointer delta by
+`scale` before snapping to the grid, and `CustomDragLayer` scales the ghost by
+the same factor. If you touch one of those, keep the other in step. The default
+window size for a new project comes from `src/lib/viewport.ts` (75% of the
+viewport, grid-snapped and clamped); `emptyDoc` stays deterministic so the parser
+fallback and the tests do not depend on a window object.
+
 **Rendering.** `WidgetPreview.tsx` is the single widget renderer for every
 library: it turns `WidgetDef.visual` plus the component's props into one of a
 fixed set of shapes (`button`, `field`, `check`, `switch`, `slider`, `list`,
