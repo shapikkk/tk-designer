@@ -40,7 +40,7 @@ Add widgets, drag them into place, edit properties, read the generated Python �
 | **Round trips** | `Load` reads a generated file back into the canvas — widgets, order, positions, sizes, text, colours and fonts intact — and switches to the library the file is written in. |
 | **Never executes your file** | Loading tokenises and pattern-matches a small Python subset. No `eval`, no `Function`, no network. |
 | **Survives your own edits** | Statements outside the recognised subset are skipped, not fatal, so a file you have added logic to still opens. Anything skipped is reported in a toast. |
-| **Live preview per library** | A `CTkSwitch` looks like a switch, a `tk.Listbox` looks like a listbox, an `ft.Dropdown` looks like a dropdown — colours, fonts, radii and all. |
+| **Live preview per library** | A `CTkSwitch` looks like a switch, a `CTkSlider` has a track and a knob, a `tk.Listbox` looks like a listbox, an `ft.Dropdown` looks like a dropdown — colours, fonts, radii and all. |
 | **Autosaves locally** | Work is kept in `localStorage` and validated on read, so an old snapshot can never resurrect a widget or property the current build no longer knows. |
 | **Light and dark** | The whole editor follows your theme; the designed window keeps its own background, exactly as your app will render it. |
 
@@ -116,7 +116,7 @@ and `hover_color`, Flet offers `opacity`, `tooltip` and enum values written the 
 
 ## Canvas, window size and zoom
 
-<img src="docs/media/editor-dark.png" alt="The editor in dark mode with a widget selected" width="100%">
+<img src="docs/media/editor-dark.png" alt="The editor in dark mode with a slider selected and its track, progress and knob colours in the panel" width="100%">
 
 - **The window is the artboard.** Whatever size you set is what lands in `root.geometry()` or `page.window.width`.
 - **A new project fits your screen** — 75% of the viewport, snapped to the 20px grid and clamped to 640–1920 × 480–1200. `Auto` recomputes it at any time; the two number fields set an exact size.
@@ -131,7 +131,7 @@ and `hover_color`, Flet offers `opacity`, `tooltip` and enum values written the 
 `Load` reads a `.py` file back into the canvas and **switches to the library the file is written in**,
 detected from its imports and constructors.
 
-<img src="docs/media/python-view.png" alt="The Python tab showing generated CustomTkinter code" width="100%">
+<img src="docs/media/python-view.png" alt="The Python tab showing the generated ctk.CTkSlider call" width="100%">
 
 <table>
 <tr><th>CustomTkinter</th><th>Flet</th></tr>
