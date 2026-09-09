@@ -13,6 +13,7 @@ tune their properties, export a real `.py` file — then load that same file bac
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Tests](https://img.shields.io/badge/tests-77_passing-2EA44F?logo=vitest&logoColor=white)](#tests)
 [![Backend](https://img.shields.io/badge/backend-none-64748B)](#no-server-no-account)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 <img src="docs/media/editor-light.png" alt="Tk Designer editor: widget palette, canvas and properties panel" width="100%">
 
@@ -347,3 +348,13 @@ shows up as a failing round trip rather than as a corrupted project someone open
 
 React 19 · TypeScript (strict) · Vite 6 · Tailwind v4 (`@theme` in `src/index.css`, no config file) ·
 shadcn/ui "new-york" on Radix · react-dnd · lucide-react · sonner · Vitest
+
+---
+
+## License
+
+[MIT](LICENSE) © shapikkk.
+
+The Python you export is yours — nothing in this project claims any rights over the generated code.
+Tkinter, [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) and [Flet](https://github.com/flet-dev/flet)
+are separate projects under their own licenses.
