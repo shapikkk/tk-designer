@@ -1,35 +1,36 @@
 import { useDrag } from "react-dnd";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import type { WidgetKind } from "@/types";
-import { WIDGETS } from "@/widgets";
+import type { WidgetDef } from "@/frameworks/types";
 
 interface WidgetProps {
-  name: WidgetKind;
+  widget: WidgetDef;
 }
 
-/** Icon and name rather than a live preview: the preview belongs on the canvas. */
-export default function Widget({ name }: WidgetProps) {
+export default function Widget({ widget }: WidgetProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: "widget",
-    item: { name },
-    collect: (monitor) => ({ isDragging: !!monitor.isDragging() }),
-  }));
+  const [{ isDragging }, drag] = useDrag(
+    () => ({
+      type: "widget",
+      item: { kind: widget.key },
+      collect: (monitor) => ({ isDragging: !!monitor.isDragging() }),
+    }),
+    [widget.key]
+  );
 
   useEffect(() => {
     drag(ref);
   }, [drag]);
 
-  const { label, icon: Icon } = WIDGETS[name];
+  const { label, icon: Icon, ctor } = widget;
 
   return (
     <div
       ref={ref}
-      title={`Drag ${label} onto the canvas`}
+      title={`${ctor} — drag onto the canvas`}
       className={cn(
         "group flex items-center gap-2.5 rounded-md border border-transparent",
-        "px-2.5 py-2 text-sm cursor-grab select-none",
+        "px-2.5 py-[7px] text-sm cursor-grab select-none",
         "transition-colors duration-150",
         "hover:border-border hover:bg-accent active:cursor-grabbing",
         isDragging && "opacity-40"

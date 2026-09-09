@@ -17,7 +17,10 @@ import {
   Eye,
   FileCode2,
   FolderOpen,
+  Grid3x3,
   LayoutPanelLeft,
+  Search,
+  Trash,
 } from "lucide-react";
 
 import { ThemeProvider } from "@/components/theme-provider";
@@ -42,34 +45,44 @@ import Widget from "@/components/Widget";
 import PropertiesPanel from "@/components/PropertiesPanel";
 import CustomDragLayer from "@/components/CustomDragLayer";
 import { NumberField } from "@/components/NumberField";
-import { generateTkinterCode } from "@/codegen/generate";
-import { parseTkinterCode } from "@/codegen/parse";
+import { generateCode } from "@/codegen/generate";
+import { parsePythonCode } from "@/codegen/parse";
 import { editorReducer, initialEditorState } from "@/state/editorReducer";
 import { loadPersisted, persist } from "@/state/persist";
-import { WIDGET_KINDS } from "@/widgets";
-import type { WidgetKind } from "@/types";
+import { FRAMEWORK_IDS, getFramework, widgetsByCategory } from "@/frameworks";
+import type { FrameworkId } from "@/frameworks/types";
+import { activeDoc } from "@/types";
+import { cn } from "@/lib/utils";
+
+const FILE_NAME: Record<FrameworkId, string> = {
+  tkinter: "tkinter-app",
+  customtkinter: "customtkinter-app",
+  flet: "flet-app",
+};
 
 function App() {
   const [state, dispatch] = useReducer(
     editorReducer,
     initialEditorState,
-    // Survive a page reload; the .py file remains the portable format.
     (fallback) => loadPersisted() ?? fallback
   );
-  const [fileName, setFileName] = useState("my-portfolio");
+  const [fileName, setFileName] = useState("");
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [search, setSearch] = useState("");
+  const [showGrid, setShowGrid] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // The Python code is derived, never stored: it cannot drift from the state.
-  const pythonCode = useMemo(() => generateTkinterCode(state), [state]);
+  const doc = activeDoc(state);
+  const framework = getFramework(state.framework);
+  const pythonCode = useMemo(() => generateCode(state), [state]);
+  const effectiveFileName = fileName || FILE_NAME[state.framework];
 
   useEffect(() => {
     const timer = setTimeout(() => persist(state), 300);
     return () => clearTimeout(timer);
   }, [state]);
 
-  // Canvas keyboard shortcuts, ignored while the user is typing in a field.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -83,20 +96,26 @@ function App() {
       if (event.key === "Escape") {
         dispatch({ type: "select", id: null });
       } else if (
-        (event.key === "Delete" || event.key === "Backspace") &&
-        state.selectedId
+        (event.key === "d" || event.key === "D") &&
+        (event.ctrlKey || event.metaKey) &&
+        doc.selectedId
       ) {
         event.preventDefault();
-        dispatch({ type: "remove", id: state.selectedId });
+        dispatch({ type: "duplicate", id: doc.selectedId });
+      } else if (
+        (event.key === "Delete" || event.key === "Backspace") &&
+        doc.selectedId
+      ) {
+        event.preventDefault();
+        dispatch({ type: "remove", id: doc.selectedId });
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [state.selectedId]);
+  }, [doc.selectedId]);
 
   const handleDrop = useCallback(
-    (name: WidgetKind, x: number, y: number) =>
-      dispatch({ type: "add", name, x, y }),
+    (kind: string, x: number, y: number) => dispatch({ type: "add", kind, x, y }),
     []
   );
 
@@ -110,8 +129,23 @@ function App() {
     []
   );
 
+  const palette = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return widgetsByCategory(state.framework)
+      .map((group) => ({
+        ...group,
+        widgets: group.widgets.filter(
+          (widget) =>
+            query === "" ||
+            widget.label.toLowerCase().includes(query) ||
+            widget.ctor.toLowerCase().includes(query)
+        ),
+      }))
+      .filter((group) => group.widgets.length > 0);
+  }, [state.framework, search]);
+
   const downloadPython = (name: string) => {
-    const safe = name.trim().replace(/\.py$/i, "") || "portfolio";
+    const safe = name.trim().replace(/\.py$/i, "") || FILE_NAME[state.framework];
     const blob = new Blob([pythonCode], { type: "text/x-python" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -121,27 +155,29 @@ function App() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success("Saved " + safe + ".py");
+    toast.success(`Saved ${safe}.py`);
   };
 
   const handleSavePortfolio = () => {
-    downloadPython(fileName);
+    downloadPython(effectiveFileName);
     setIsSaveDialogOpen(false);
   };
 
   const handleOpenFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    // Reset first, so picking the same file twice still fires a change event.
     event.target.value = "";
     if (!file) return;
 
     try {
-      // The file is read as text and parsed statically. It is never executed.
-      const { state: loaded, warnings } = parseTkinterCode(await file.text());
-      dispatch({ type: "load", state: loaded });
+      const { framework: detected, doc: loaded, warnings } = parsePythonCode(
+        await file.text()
+      );
+      dispatch({ type: "load", framework: detected, doc: loaded });
       setFileName(file.name.replace(/\.py$/i, ""));
       toast.success(
-        `Loaded ${loaded.components.length} widget(s) from ${file.name}`
+        `Loaded ${loaded.components.length} widget(s) as ${
+          getFramework(detected).label
+        }`
       );
       for (const warning of warnings) toast.warning(warning);
     } catch (error) {
@@ -167,12 +203,11 @@ function App() {
       toast.error("Failed to open new tab. Please allow popups.");
       return;
     }
-    // Written as text, never as markup, so widget text cannot inject HTML.
     const pre = newWindow.document.createElement("pre");
     pre.textContent = pythonCode;
     pre.style.cssText =
       "white-space:pre-wrap;word-wrap:break-word;font-family:ui-monospace,monospace";
-    newWindow.document.title = "Raw Python Code";
+    newWindow.document.title = `${framework.label} code`;
     newWindow.document.body.style.cssText =
       "background:#0e0f13;color:#e6e8ee;padding:24px;margin:0";
     newWindow.document.body.appendChild(pre);
@@ -198,6 +233,45 @@ function App() {
 
             <div className="h-5 w-px bg-border" />
 
+            <div
+              className="flex items-center gap-0.5 rounded-md bg-muted p-0.5"
+              role="tablist"
+              aria-label="Target library"
+            >
+              {FRAMEWORK_IDS.map((id) => {
+                const def = getFramework(id);
+                const isActive = state.framework === id;
+                const count = state.docs[id].components.length;
+                return (
+                  <button
+                    key={id}
+                    role="tab"
+                    aria-selected={isActive}
+                    title={def.tagline}
+                    onClick={() => dispatch({ type: "setFramework", framework: id })}
+                    className={cn(
+                      "flex h-7 items-center gap-1.5 rounded px-2.5 text-xs",
+                      "transition-colors duration-150",
+                      isActive
+                        ? "bg-background font-medium shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <span
+                      className="size-1.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: def.accent }}
+                    />
+                    {def.label}
+                    {count > 0 && (
+                      <span className="rounded bg-muted-foreground/15 px-1 text-[10px] tabular-nums">
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
             <TabsList className="h-8 gap-0.5 bg-muted p-0.5">
               <TabsTrigger value="visual" className="h-7 gap-1.5 px-2.5 text-xs">
                 <Eye className="size-3.5" strokeWidth={1.75} />
@@ -214,7 +288,7 @@ function App() {
                 variant="ghost"
                 size="sm"
                 className="gap-1.5"
-                title="Open a .py file saved from this editor"
+                title="Open a .py file — the library is detected from its imports"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <FolderOpen className="size-4" strokeWidth={1.75} />
@@ -241,10 +315,10 @@ function App() {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[420px]">
                   <DialogHeader>
-                    <DialogTitle>Save portfolio</DialogTitle>
+                    <DialogTitle>Save {framework.label} project</DialogTitle>
                     <DialogDescription>
-                      Downloads a runnable CustomTkinter file. Load it back here
-                      any time to keep editing.
+                      Downloads a runnable {framework.module} file. Load it back
+                      here any time to keep editing.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-2 py-2">
@@ -254,7 +328,7 @@ function App() {
                         id="file-name"
                         value={fileName}
                         onChange={(e) => setFileName(e.target.value)}
-                        placeholder="my-portfolio"
+                        placeholder={FILE_NAME[state.framework]}
                         onKeyDown={(e) =>
                           e.key === "Enter" && handleSavePortfolio()
                         }
@@ -277,20 +351,52 @@ function App() {
           </header>
 
           <div className="flex min-h-0 flex-1">
-            <aside className="scroll-slim flex w-56 shrink-0 flex-col justify-between overflow-y-auto border-r bg-background">
+            <aside className="scroll-slim flex w-60 shrink-0 flex-col justify-between overflow-y-auto border-r bg-background">
               <div className="p-3">
-                <h2 className="px-2.5 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Widgets
-                </h2>
-                <div className="space-y-0.5">
-                  {WIDGET_KINDS.map((widget) => (
-                    <Widget key={widget} name={widget} />
-                  ))}
+                <div className="relative pb-2">
+                  <Search
+                    className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+                    strokeWidth={1.75}
+                  />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={`Search ${framework.widgets.length} widgets`}
+                    className="h-8 pl-8 text-xs"
+                  />
                 </div>
+
+                {palette.map((group) => (
+                  <div key={group.category} className="pb-1">
+                    <h2 className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {group.category}
+                    </h2>
+                    <div className="space-y-0.5">
+                      {group.widgets.map((widget) => (
+                        <Widget key={widget.key} widget={widget} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                {palette.length === 0 && (
+                  <p className="px-2.5 py-6 text-center text-xs text-muted-foreground">
+                    No widget matches “{search}”.
+                  </p>
+                )}
               </div>
-              <footer className="p-4 text-[11px] leading-relaxed text-muted-foreground">
+
+              <footer className="space-y-1 p-4 text-[11px] leading-relaxed text-muted-foreground">
+                <a
+                  href={framework.docsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 hover:text-foreground"
+                >
+                  {framework.label} docs
+                  <ExternalLink className="size-3" strokeWidth={1.75} />
+                </a>
                 <p>Runs entirely in your browser.</p>
-                <p>Copyright © 2025</p>
               </footer>
             </aside>
 
@@ -301,20 +407,22 @@ function App() {
               >
                 <div className="flex min-h-full min-w-fit flex-col items-center gap-4">
                   <Dropzone
-                    width={state.canvasWidth}
-                    height={state.canvasHeight}
-                    components={state.components}
-                    windowBackground={state.windowBackground}
-                    selectedComponent={state.selectedId}
+                    framework={state.framework}
+                    width={doc.canvasWidth}
+                    height={doc.canvasHeight}
+                    components={doc.components}
+                    windowBackground={doc.windowBackground}
+                    selectedComponent={doc.selectedId}
                     onDrop={handleDrop}
                     updateComponentPosition={handleMove}
                     setSelectedComponent={handleSelect}
+                    showGrid={showGrid}
                   />
                   <div className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 shadow-sm">
                     <span className="text-xs text-muted-foreground">Window</span>
                     <NumberField
                       aria-label="Window width in pixels"
-                      value={state.canvasWidth}
+                      value={doc.canvasWidth}
                       min={200}
                       max={4096}
                       onCommit={(canvasWidth) =>
@@ -325,7 +433,7 @@ function App() {
                     <span className="text-xs text-muted-foreground">×</span>
                     <NumberField
                       aria-label="Window height in pixels"
-                      value={state.canvasHeight}
+                      value={doc.canvasHeight}
                       min={200}
                       max={4096}
                       onCommit={(canvasHeight) =>
@@ -333,9 +441,31 @@ function App() {
                       }
                       className="h-7 w-20 text-xs"
                     />
+                    <div className="mx-1 h-5 w-px bg-border" />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn("h-7 gap-1.5 px-2 text-xs", !showGrid && "text-muted-foreground")}
+                      onClick={() => setShowGrid((value) => !value)}
+                      title="Toggle the alignment grid"
+                    >
+                      <Grid3x3 className="size-3.5" strokeWidth={1.75} />
+                      Grid
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1.5 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => dispatch({ type: "clear" })}
+                      disabled={doc.components.length === 0}
+                      title="Remove every widget from this canvas"
+                    >
+                      <Trash className="size-3.5" strokeWidth={1.75} />
+                      Clear
+                    </Button>
                     <span className="ml-1 text-xs text-muted-foreground">
-                      {state.components.length} widget
-                      {state.components.length === 1 ? "" : "s"}
+                      {doc.components.length} widget
+                      {doc.components.length === 1 ? "" : "s"}
                     </span>
                   </div>
                 </div>
@@ -348,7 +478,7 @@ function App() {
                 <div className="relative h-full overflow-hidden rounded-lg border bg-background shadow-sm">
                   <div className="flex h-10 items-center justify-between border-b px-3">
                     <span className="font-mono text-xs text-muted-foreground">
-                      {fileName || "portfolio"}.py
+                      {effectiveFileName}.py
                     </span>
                     <div className="flex gap-1">
                       <Button
@@ -380,7 +510,7 @@ function App() {
                         variant="ghost"
                         size="sm"
                         className="gap-1.5"
-                        onClick={() => downloadPython(fileName)}
+                        onClick={() => downloadPython(effectiveFileName)}
                       >
                         <Download className="size-3.5" strokeWidth={1.75} />
                         Download
@@ -397,7 +527,7 @@ function App() {
             <PropertiesPanel state={state} dispatch={dispatch} />
           </div>
         </Tabs>
-        <CustomDragLayer />
+        <CustomDragLayer framework={state.framework} surface={doc.windowBackground} />
         <Toaster />
       </DndProvider>
     </ThemeProvider>

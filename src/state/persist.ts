@@ -1,43 +1,98 @@
-import type { Component, EditorState } from "@/types";
-import { WIDGETS } from "@/widgets";
-import { initialEditorState } from "@/state/editorReducer";
+import type {
+  Component,
+  ComponentProps,
+  EditorState,
+  FrameworkDoc,
+} from "@/types";
+import type { FrameworkId, PropValue } from "@/frameworks/types";
+import {
+  DEFAULT_FRAMEWORK,
+  FRAMEWORK_IDS,
+  findWidget,
+  isFrameworkId,
+  propSpec,
+} from "@/frameworks";
+import { emptyDoc, emptyDocs } from "@/state/editorReducer";
 
 const KEY = "tk-designer:editor";
 
-const isWidgetKind = (value: unknown): value is Component["name"] =>
-  typeof value === "string" && value in WIDGETS;
+const isPropValue = (value: unknown): value is PropValue =>
+  typeof value === "string" ||
+  typeof value === "number" ||
+  typeof value === "boolean" ||
+  (Array.isArray(value) && value.every((item) => typeof item === "string"));
 
-/** Anything in localStorage is untrusted input: it may be from an older build,
- *  hand-edited, or corrupt. Validate rather than cast. */
-function reviveState(raw: unknown): EditorState | null {
-  if (!raw || typeof raw !== "object") return null;
+function reviveProps(
+  framework: FrameworkId,
+  kind: string,
+  raw: unknown
+): ComponentProps {
+  const widget = findWidget(framework, kind);
+  if (!widget || !raw || typeof raw !== "object") return {};
+  const props: ComponentProps = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!propSpec(widget, key)) continue;
+    if (isPropValue(value)) props[key] = value;
+  }
+  return props;
+}
+
+function reviveDoc(framework: FrameworkId, raw: unknown): FrameworkDoc {
+  const fallback = emptyDoc(framework);
+  if (!raw || typeof raw !== "object") return fallback;
   const candidate = raw as Record<string, unknown>;
-  if (!Array.isArray(candidate.components)) return null;
 
   const components: Component[] = [];
-  for (const entry of candidate.components) {
-    if (!entry || typeof entry !== "object") continue;
-    const c = entry as Record<string, unknown>;
-    if (typeof c.id !== "string" || !isWidgetKind(c.name)) continue;
-    if (typeof c.x !== "number" || typeof c.y !== "number") continue;
-    components.push(c as unknown as Component);
+  if (Array.isArray(candidate.components)) {
+    for (const entry of candidate.components) {
+      if (!entry || typeof entry !== "object") continue;
+      const c = entry as Record<string, unknown>;
+      if (typeof c.id !== "string" || typeof c.kind !== "string") continue;
+      if (typeof c.x !== "number" || typeof c.y !== "number") continue;
+      if (!findWidget(framework, c.kind)) continue;
+      components.push({
+        id: c.id,
+        kind: c.kind,
+        x: c.x,
+        y: c.y,
+        props: reviveProps(framework, c.kind, c.props),
+      });
+    }
   }
 
-  const num = (value: unknown, fallback: number) =>
-    typeof value === "number" && Number.isFinite(value) ? value : fallback;
-  const str = (value: unknown, fallback: string) =>
-    typeof value === "string" ? value : fallback;
+  const num = (value: unknown, fallbackValue: number) =>
+    typeof value === "number" && Number.isFinite(value) ? value : fallbackValue;
+  const str = (value: unknown, fallbackValue: string) =>
+    typeof value === "string" ? value : fallbackValue;
 
   return {
     components,
     selectedId: null,
-    windowTitle: str(candidate.windowTitle, initialEditorState.windowTitle),
+    windowTitle: str(candidate.windowTitle, fallback.windowTitle),
     windowBackground: str(
       candidate.windowBackground,
-      initialEditorState.windowBackground
+      fallback.windowBackground
     ),
-    canvasWidth: num(candidate.canvasWidth, initialEditorState.canvasWidth),
-    canvasHeight: num(candidate.canvasHeight, initialEditorState.canvasHeight),
+    canvasWidth: num(candidate.canvasWidth, fallback.canvasWidth),
+    canvasHeight: num(candidate.canvasHeight, fallback.canvasHeight),
+  };
+}
+
+function reviveState(raw: unknown): EditorState | null {
+  if (!raw || typeof raw !== "object") return null;
+  const candidate = raw as Record<string, unknown>;
+  const docs = emptyDocs();
+  const stored = (candidate.docs ?? {}) as Record<string, unknown>;
+
+  for (const id of FRAMEWORK_IDS) {
+    if (stored[id] !== undefined) docs[id] = reviveDoc(id, stored[id]);
+  }
+
+  return {
+    framework: isFrameworkId(candidate.framework)
+      ? candidate.framework
+      : DEFAULT_FRAMEWORK,
+    docs,
   };
 }
 
@@ -54,7 +109,6 @@ export function persist(state: EditorState): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
   } catch {
-    // Quota exceeded or storage disabled — autosave is a convenience, not a
-    // guarantee, and the user still has Save Portfolio.
+    return;
   }
 }
