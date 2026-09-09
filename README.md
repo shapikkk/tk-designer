@@ -26,7 +26,7 @@ tune their properties, export a real `.py` file — then load that same file bac
 Add widgets, drag them into place, edit properties, read the generated Python — no reload, no round trip to a server.
 
 <div align="center">
-  <img src="docs/media/demo.gif" alt="Building a CustomTkinter sign-in window and switching to the generated Python" width="100%">
+  <img src="docs/media/demo.gif" alt="Building a CustomTkinter sign-in window: adding a label, entry, slider and button, recolouring them, then reading the generated Python" width="100%">
 </div>
 
 ---
