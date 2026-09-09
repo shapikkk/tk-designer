@@ -1,21 +1,24 @@
 import type { Dispatch, ReactNode } from "react";
-import { MousePointer2, Trash2 } from "lucide-react";
+import { Copy, MousePointer2, Trash2, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "@/components/NumberField";
 import { cn } from "@/lib/utils";
-import type { Component, EditorState } from "@/types";
-import { WIDGETS, canEdit } from "@/widgets";
+import type { ComponentProps, EditorState } from "@/types";
+import type { PropGroup, PropSpec, PropValue } from "@/frameworks/types";
+import { getFramework, getWidget } from "@/frameworks";
+import { activeDoc } from "@/types";
 import type { EditorAction } from "@/state/editorReducer";
 
-interface PropertiesPanelProps {
-  state: EditorState;
-  dispatch: Dispatch<EditorAction>;
-}
+const GROUP_ORDER: PropGroup[] = [
+  "Content",
+  "Text",
+  "Appearance",
+  "Layout",
+  "Behavior",
+];
 
-/** `input[type=color]` silently falls back to black for anything that is not a
- *  six-digit hex value, and files loaded from disk may carry a named colour. */
 const asHex = (value: string | undefined, fallback: string) =>
   value && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
 
@@ -30,12 +33,23 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Row({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
+function Row({
+  label,
+  htmlFor,
+  hint,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  hint?: string;
+  children: ReactNode;
+}) {
   return (
-    <div className="grid grid-cols-[5.5rem_1fr] items-center gap-2">
+    <div className="grid grid-cols-[6.5rem_1fr] items-center gap-2">
       <label
         htmlFor={htmlFor}
         className="truncate text-xs text-muted-foreground"
+        title={hint ?? label}
       >
         {label}
       </label>
@@ -44,74 +58,263 @@ function Row({ label, htmlFor, children }: { label: string; htmlFor?: string; ch
   );
 }
 
-function ColorRow({
-  label,
+function Toggle({
+  id,
+  checked,
+  onChange,
+}: {
+  id: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <button
+      id={id}
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative h-5 w-9 shrink-0 rounded-full transition-colors duration-150",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        checked ? "bg-primary" : "bg-muted-foreground/30"
+      )}
+    >
+      <span
+        className={cn(
+          "absolute top-0.5 size-4 rounded-full bg-background shadow-sm",
+          "transition-transform duration-150",
+          checked ? "translate-x-[1.125rem]" : "translate-x-0.5"
+        )}
+      />
+    </button>
+  );
+}
+
+function ColorField({
   id,
   value,
-  fallback,
+  clearable,
   onChange,
   onClear,
 }: {
-  label: string;
   id: string;
   value: string | undefined;
-  fallback: string;
+  clearable?: boolean;
   onChange: (value: string) => void;
-  onClear?: () => void;
+  onClear: () => void;
 }) {
   return (
-    <Row label={label} htmlFor={id}>
-      <div className="flex items-center gap-1.5">
-        <Input
-          id={id}
-          type="color"
-          value={asHex(value, fallback)}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-8 w-full min-w-0"
-        />
-        <span className="w-[4.5rem] shrink-0 font-mono text-[11px] text-muted-foreground">
-          {value ?? "none"}
-        </span>
-        {onClear && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 shrink-0 px-2 text-xs"
-            onClick={onClear}
-            title="Use the window background instead"
-            disabled={value === undefined}
-          >
-            Clear
-          </Button>
-        )}
-      </div>
-    </Row>
+    <div className="flex items-center gap-1.5">
+      <Input
+        id={id}
+        type="color"
+        value={asHex(value, "#ffffff")}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 w-10 shrink-0 p-1"
+      />
+      <Input
+        value={value ?? ""}
+        placeholder="none"
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 min-w-0 flex-1 font-mono text-[11px]"
+      />
+      {clearable && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 shrink-0 px-1.5 text-[11px]"
+          onClick={onClear}
+          disabled={value === undefined}
+          title="Clear this colour"
+        >
+          ✕
+        </Button>
+      )}
+    </div>
   );
+}
+
+function PropField({
+  spec,
+  value,
+  onChange,
+}: {
+  spec: PropSpec;
+  value: PropValue | undefined;
+  onChange: (value: PropValue | undefined) => void;
+}) {
+  const id = `prop-${spec.key}`;
+  const label = spec.unit ? `${spec.label} (${spec.unit})` : spec.label;
+
+  switch (spec.type) {
+    case "text":
+      return (
+        <Row label={label} htmlFor={id} hint={spec.kwarg || spec.key}>
+          <Input
+            id={id}
+            value={typeof value === "string" ? value : ""}
+            placeholder={spec.placeholder ?? ""}
+            onChange={(e) =>
+              onChange(e.target.value === "" ? undefined : e.target.value)
+            }
+            className="h-8 text-sm"
+          />
+        </Row>
+      );
+
+    case "number":
+      return (
+        <Row label={label} htmlFor={id} hint={spec.kwarg || spec.key}>
+          <NumberField
+            id={id}
+            value={typeof value === "number" ? value : undefined}
+            min={spec.min}
+            max={spec.max}
+            allowFraction={
+              spec.min !== undefined &&
+              spec.max !== undefined &&
+              spec.max - spec.min <= 1
+            }
+            placeholder="default"
+            onCommit={(next) => onChange(next)}
+            onClear={() => onChange(undefined)}
+            className="h-8 text-sm"
+          />
+        </Row>
+      );
+
+    case "color":
+      return (
+        <Row label={label} htmlFor={id} hint={spec.kwarg || spec.key}>
+          <ColorField
+            id={id}
+            value={typeof value === "string" ? value : undefined}
+            clearable={spec.clearable}
+            onChange={(next) => onChange(next)}
+            onClear={() => onChange(undefined)}
+          />
+        </Row>
+      );
+
+    case "bool":
+      return (
+        <Row label={label} htmlFor={id} hint={spec.kwarg || spec.key}>
+          <Toggle
+            id={id}
+            checked={value === true}
+            onChange={(next) => onChange(next)}
+          />
+        </Row>
+      );
+
+    case "select":
+      return (
+        <Row label={label} htmlFor={id} hint={spec.kwarg || spec.key}>
+          <select
+            id={id}
+            value={typeof value === "string" ? value : ""}
+            onChange={(e) => onChange(e.target.value)}
+            className={cn(
+              "h-8 w-full rounded-md border border-input bg-transparent px-2",
+              "text-sm shadow-xs outline-none transition-[color,box-shadow]",
+              "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            )}
+          >
+            {spec.options?.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </Row>
+      );
+
+    case "list":
+      return (
+        <Row label={label} htmlFor={id} hint="One value per line">
+          <textarea
+            id={id}
+            rows={Math.min(6, Math.max(2, (Array.isArray(value) ? value : []).length))}
+            value={Array.isArray(value) ? value.join("\n") : ""}
+            onChange={(e) =>
+              onChange(
+                e.target.value
+                  .split("\n")
+                  .map((item) => item.trim())
+                  .filter((item) => item.length > 0)
+              )
+            }
+            className={cn(
+              "w-full rounded-md border border-input bg-transparent px-2 py-1.5",
+              "text-sm shadow-xs outline-none transition-[color,box-shadow]",
+              "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            )}
+          />
+        </Row>
+      );
+  }
+}
+
+interface PropertiesPanelProps {
+  state: EditorState;
+  dispatch: Dispatch<EditorAction>;
+  className?: string;
+  onClose?: () => void;
 }
 
 export default function PropertiesPanel({
   state,
   dispatch,
+  className,
+  onClose,
 }: PropertiesPanelProps) {
-  const selected = state.components.find((c) => c.id === state.selectedId);
+  const doc = activeDoc(state);
+  const framework = getFramework(state.framework);
+  const selected = doc.components.find((c) => c.id === doc.selectedId);
+  const widget = selected ? getWidget(state.framework, selected.kind) : null;
 
-  const patch = (values: Partial<Component>) => {
+  const patch = (values: ComponentProps) => {
     if (!selected) return;
     dispatch({ type: "update", id: selected.id, patch: values });
   };
 
-  const can = (prop: Parameters<typeof canEdit>[1]) =>
-    selected !== undefined && canEdit(selected.name, prop);
-
-  const SelectedIcon = selected ? WIDGETS[selected.name].icon : null;
+  const groups = widget
+    ? GROUP_ORDER.map((group) => ({
+        group,
+        specs: widget.props.filter((spec) => spec.group === group),
+      })).filter((entry) => entry.specs.length > 0)
+    : [];
 
   return (
-    <aside className="scroll-slim flex w-[300px] shrink-0 flex-col overflow-y-auto border-l bg-background">
-      <Section title="Window">
+    <aside
+      className={cn(
+        "scroll-slim flex shrink-0 flex-col overflow-y-auto border-l bg-background",
+        className
+      )}
+    >
+      {onClose && (
+        <div className="flex items-center justify-between border-b px-4 py-2 lg:hidden">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Properties
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="size-7 p-0"
+            onClick={onClose}
+            aria-label="Close properties panel"
+          >
+            <X className="size-4" strokeWidth={1.75} />
+          </Button>
+        </div>
+      )}
+
+      <Section title={`${framework.label} window`}>
         <Row label="Title" htmlFor="window-title">
           <Input
             id="window-title"
-            value={state.windowTitle}
+            value={doc.windowTitle}
             onChange={(e) =>
               dispatch({
                 type: "setWindow",
@@ -122,18 +325,58 @@ export default function PropertiesPanel({
             className="h-8 text-sm"
           />
         </Row>
-        <ColorRow
-          label="Background"
-          id="window-bg"
-          value={state.windowBackground}
-          fallback="#ffffff"
-          onChange={(windowBackground) =>
-            dispatch({ type: "setWindow", patch: { windowBackground } })
-          }
-        />
+        <Row label="Background" htmlFor="window-bg">
+          <ColorField
+            id="window-bg"
+            value={doc.windowBackground}
+            onChange={(windowBackground) =>
+              dispatch({ type: "setWindow", patch: { windowBackground } })
+            }
+            onClear={() =>
+              dispatch({
+                type: "setWindow",
+                patch: {
+                  windowBackground: framework.defaultWindow.background,
+                },
+              })
+            }
+          />
+        </Row>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-2">
+            <label htmlFor="win-w" className="w-3 text-xs text-muted-foreground">
+              W
+            </label>
+            <NumberField
+              id="win-w"
+              value={doc.canvasWidth}
+              min={200}
+              max={4096}
+              onCommit={(canvasWidth) =>
+                dispatch({ type: "setWindow", patch: { canvasWidth } })
+              }
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="win-h" className="w-3 text-xs text-muted-foreground">
+              H
+            </label>
+            <NumberField
+              id="win-h"
+              value={doc.canvasHeight}
+              min={200}
+              max={4096}
+              onCommit={(canvasHeight) =>
+                dispatch({ type: "setWindow", patch: { canvasHeight } })
+              }
+              className="h-8 text-sm"
+            />
+          </div>
+        </div>
       </Section>
 
-      {!selected || !SelectedIcon ? (
+      {!selected || !widget ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
           <MousePointer2
             className="size-5 text-muted-foreground/60"
@@ -146,13 +389,14 @@ export default function PropertiesPanel({
       ) : (
         <div className="animate-in fade-in-0 duration-150">
           <div className="flex items-center gap-2 border-b px-4 py-3">
-            <SelectedIcon
+            <widget.icon
               className="size-4 shrink-0 text-primary"
               strokeWidth={1.75}
             />
-            <span className="text-sm font-medium">
-              {WIDGETS[selected.name].label}
-            </span>
+            <span className="text-sm font-medium">{widget.label}</span>
+            <code className="ml-auto truncate font-mono text-[10px] text-muted-foreground">
+              {widget.ctor}
+            </code>
           </div>
 
           <Section title="Position">
@@ -168,7 +412,7 @@ export default function PropertiesPanel({
                   id="pos-x"
                   value={selected.x}
                   min={0}
-                  max={state.canvasWidth}
+                  max={doc.canvasWidth}
                   onCommit={(x) =>
                     dispatch({ type: "move", id: selected.id, x, y: selected.y })
                   }
@@ -186,7 +430,7 @@ export default function PropertiesPanel({
                   id="pos-y"
                   value={selected.y}
                   min={0}
-                  max={state.canvasHeight}
+                  max={doc.canvasHeight}
                   onCommit={(y) =>
                     dispatch({ type: "move", id: selected.id, x: selected.x, y })
                   }
@@ -194,187 +438,33 @@ export default function PropertiesPanel({
                 />
               </div>
             </div>
-
-            {(can("width") || can("height")) && (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center gap-2">
-                  <label
-                    htmlFor="prop-width"
-                    className="w-3 text-xs text-muted-foreground"
-                  >
-                    W
-                  </label>
-                  <NumberField
-                    id="prop-width"
-                    value={selected.width ?? 140}
-                    min={20}
-                    max={4096}
-                    onCommit={(width) => patch({ width })}
-                    className="h-8 text-sm"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <label
-                    htmlFor="prop-height"
-                    className="w-3 text-xs text-muted-foreground"
-                  >
-                    H
-                  </label>
-                  <NumberField
-                    id="prop-height"
-                    value={selected.height ?? 28}
-                    min={20}
-                    max={4096}
-                    onCommit={(height) => patch({ height })}
-                    className="h-8 text-sm"
-                  />
-                </div>
-              </div>
-            )}
           </Section>
 
-          {(can("text") || can("font_family") || can("font_size")) && (
-            <Section title="Content">
-              {can("text") && (
-                <Row label="Text" htmlFor="prop-text">
-                  <Input
-                    id="prop-text"
-                    value={selected.text ?? ""}
-                    onChange={(e) => patch({ text: e.target.value })}
-                    placeholder="Enter text"
-                    className="h-8 text-sm"
-                  />
-                </Row>
-              )}
-              {can("font_family") && (
-                <Row label="Font" htmlFor="prop-font-family">
-                  <Input
-                    id="prop-font-family"
-                    value={selected.font_family ?? "Arial"}
-                    onChange={(e) => patch({ font_family: e.target.value })}
-                    placeholder="Arial"
-                    className="h-8 text-sm"
-                  />
-                </Row>
-              )}
-              {can("font_size") && (
-                <Row label="Size" htmlFor="prop-font-size">
-                  <NumberField
-                    id="prop-font-size"
-                    value={selected.font_size ?? 14}
-                    min={8}
-                    max={200}
-                    onCommit={(font_size) => patch({ font_size })}
-                    className="h-8 text-sm"
-                  />
-                </Row>
-              )}
-            </Section>
-          )}
-
-          <Section title="Appearance">
-            {can("text_color") && (
-              <ColorRow
-                label="Text"
-                id="prop-text-color"
-                value={selected.text_color}
-                fallback="#000000"
-                onChange={(text_color) => patch({ text_color })}
-              />
-            )}
-            {can("bg_color") && (
-              <ColorRow
-                label="Background"
-                id="prop-bg-color"
-                value={selected.bg_color}
-                fallback="#ffffff"
-                onChange={(bg_color) => patch({ bg_color })}
-                onClear={() => patch({ bg_color: undefined })}
-              />
-            )}
-            {can("border_width") && (
-              <Row label="Border" htmlFor="prop-border-width">
-                <NumberField
-                  id="prop-border-width"
-                  value={selected.border_width ?? 0}
-                  min={0}
-                  max={50}
-                  onCommit={(border_width) => patch({ border_width })}
-                  className="h-8 text-sm"
+          {groups.map(({ group, specs }) => (
+            <Section key={group} title={group}>
+              {specs.map((spec) => (
+                <PropField
+                  key={spec.key}
+                  spec={spec}
+                  value={selected.props[spec.key]}
+                  onChange={(value) => patch({ [spec.key]: value })}
                 />
-              </Row>
-            )}
-            {can("border_color") && (selected.border_width ?? 0) > 0 && (
-              <ColorRow
-                label="Border color"
-                id="prop-border-color"
-                value={selected.border_color}
-                fallback="#3b82f6"
-                onChange={(border_color) => patch({ border_color })}
-              />
-            )}
-            {can("border_radius") && (
-              <Row label="Radius" htmlFor="prop-border-radius">
-                <NumberField
-                  id="prop-border-radius"
-                  value={selected.border_radius ?? 6}
-                  min={0}
-                  max={100}
-                  onCommit={(border_radius) => patch({ border_radius })}
-                  className="h-8 text-sm"
-                />
-              </Row>
-            )}
-            {!can("text_color") && !can("bg_color") && !can("border_width") && (
-              <p className="text-xs text-muted-foreground">
-                {WIDGETS[selected.name].label} uses fixed styling.
-              </p>
-            )}
-          </Section>
-
-          {can("enable_hover") && (
-            <Section title="Interaction">
-              <div className="flex items-center justify-between gap-2">
-                <label htmlFor="prop-hover" className="text-xs text-muted-foreground">
-                  Hover effect
-                </label>
-                <button
-                  id="prop-hover"
-                  role="switch"
-                  aria-checked={selected.enable_hover ?? false}
-                  onClick={() => patch({ enable_hover: !selected.enable_hover })}
-                  className={cn(
-                    "relative h-5 w-9 shrink-0 rounded-full transition-colors duration-150",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    selected.enable_hover ? "bg-primary" : "bg-muted-foreground/30"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "absolute top-0.5 size-4 rounded-full bg-background shadow-sm",
-                      "transition-transform duration-150",
-                      selected.enable_hover
-                        ? "translate-x-[1.125rem]"
-                        : "translate-x-0.5"
-                    )}
-                  />
-                </button>
-              </div>
-              {selected.enable_hover && (
-                <div className="animate-in fade-in-0 slide-in-from-top-1 duration-150">
-                  <ColorRow
-                    label="Hover color"
-                    id="prop-hover-color"
-                    value={selected.hover_bg_color}
-                    fallback="#2563eb"
-                    onChange={(hover_bg_color) => patch({ hover_bg_color })}
-                  />
-                </div>
-              )}
+              ))}
             </Section>
-          )}
+          ))}
 
-          <div className="p-4">
+          <div className="space-y-1.5 p-4">
+            <Button
+              variant="ghost"
+              className="w-full gap-2"
+              onClick={() => dispatch({ type: "duplicate", id: selected.id })}
+            >
+              <Copy className="size-4" strokeWidth={1.75} />
+              Duplicate
+              <kbd className="ml-auto rounded border px-1.5 text-[10px] text-muted-foreground">
+                Ctrl D
+              </kbd>
+            </Button>
             <Button
               variant="ghost"
               className="w-full gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"

@@ -1,216 +1,308 @@
 import { describe, expect, it } from "vitest";
-import { ParseError, parseTkinterCode } from "@/codegen/parse";
+import { ParseError, parsePythonCode } from "@/codegen/parse";
 import { MAX_SOURCE_BYTES } from "@/codegen/lexer";
 
-const summarise = (source: string) =>
-  parseTkinterCode(source).state.components.map(
-    (c) => `${c.name}@(${c.x},${c.y})`
-  );
+const parse = (source: string) => parsePythonCode(source);
+const first = (source: string) => parse(source).doc.components[0];
 
 describe("files that cannot be loaded", () => {
-  it.each([
-    ["an empty file", ""],
-    ["prose", "this is not python, it is a shopping list"],
-    ["binary noise", "<<< \x00\x01\x02 >>>"],
-  ])("rejects %s with a readable message", (_label, source) => {
-    expect(() => parseTkinterCode(source)).toThrow(ParseError);
-    expect(() => parseTkinterCode(source)).toThrow(/No Tkinter widgets found/);
-  });
-
   it("reports the line of an unterminated string", () => {
-    expect(() =>
-      parseTkinterCode('root = ctk.CTk()\nroot.title("oops\n')
-    ).toThrow(/Line 2: Unterminated string literal/);
+    expect(() => parse('root = tk.Tk()\nroot.title("oops\n')).toThrow(ParseError);
+    expect(() => parse('root = tk.Tk()\nroot.title("oops\n')).toThrow(/Line 2/);
   });
 
   it("reports a truncated call rather than silently dropping it", () => {
     expect(() =>
-      parseTkinterCode("root = ctk.CTk()\nb = ctk.CTkButton(master=root,\n")
-    ).toThrow(/Line 2: Unclosed argument list/);
+      parse('import tkinter as tk\nbutton_1 = tk.Button(master=root, text="hi"')
+    ).toThrow(/Unclosed call/);
   });
 
   it("refuses a file too large to be worth tokenising", () => {
-    expect(() => parseTkinterCode("#".repeat(MAX_SOURCE_BYTES + 1))).toThrow(
-      /too large to parse/
-    );
+    expect(() => parse("#".repeat(MAX_SOURCE_BYTES + 1))).toThrow(/too large/);
+  });
+});
+
+describe("framework detection", () => {
+  it("reads a plain tkinter file", () => {
+    const result = parse(`import tkinter as tk
+
+root = tk.Tk()
+root.title("Plain")
+label_1 = tk.Label(master=root, text="Hello", fg="#222222")
+label_1.place(x=10, y=20)
+root.mainloop()
+`);
+    expect(result.framework).toBe("tkinter");
+    expect(result.doc.components[0].kind).toBe("Label");
+    expect(result.doc.windowTitle).toBe("Plain");
+  });
+
+  it("prefers customtkinter when both modules are imported", () => {
+    const result = parse(`import tkinter as tk
+import customtkinter as ctk
+
+root = ctk.CTk()
+button_1 = ctk.CTkButton(master=root, text="Go")
+button_1.place(x=5, y=5)
+`);
+    expect(result.framework).toBe("customtkinter");
+    expect(result.doc.components[0].kind).toBe("CTkButton");
+  });
+
+  it("reads a flet file", () => {
+    const result = parse(`import flet as ft
+
+
+def main(page: ft.Page):
+    page.title = "Flet app"
+    page.bgcolor = "#fafafa"
+    page.window.width = 480
+    page.window.height = 320
+
+    text_1 = ft.Text(
+        value="Hello",
+        size=20,
+        left=30,
+        top=40,
+    )
+
+    page.add(ft.Stack(controls=[text_1]))
+
+
+if __name__ == "__main__":
+    ft.run(main)
+`);
+    expect(result.framework).toBe("flet");
+    expect(result.doc.windowTitle).toBe("Flet app");
+    expect(result.doc.windowBackground).toBe("#fafafa");
+    expect(result.doc.canvasWidth).toBe(480);
+    expect(result.doc.canvasHeight).toBe(320);
+    expect(result.doc.components).toHaveLength(1);
+    expect(result.doc.components[0]).toMatchObject({
+      kind: "Text",
+      x: 30,
+      y: 40,
+    });
+    expect(result.doc.components[0].props.value).toBe("Hello");
+  });
+
+  it("falls back to the constructors when imports are unusual", () => {
+    const result = parse(`from customtkinter import *
+
+root = CTk()
+switch_1 = CTkSwitch(master=root, text="Wifi")
+switch_1.place(x=0, y=0)
+`);
+    expect(result.framework).toBe("customtkinter");
+    expect(result.doc.components[0].kind).toBe("CTkSwitch");
+  });
+
+  it("reads flet positions written as attributes", () => {
+    const result = parse(`import flet as ft
+
+def main(page):
+    button_1 = ft.ElevatedButton(text="Send")
+    button_1.left = 60
+    button_1.top = 90
+    page.add(ft.Stack(controls=[button_1]))
+`);
+    expect(result.doc.components[0]).toMatchObject({ x: 60, y: 90 });
   });
 });
 
 describe("files we did not write", () => {
   it("loads a file the user has added their own code to", () => {
-    const source = `import tkinter as tk
-import customtkinter as ctk
-import os, sys
+    const result = parse(`import tkinter as tk
+from datetime import datetime
 
-ctk.set_appearance_mode("dark")
+# a helper of my own
+def stamp():
+    return datetime.now().isoformat()
 
-root = ctk.CTk()
-root.title('Single quoted title')
-root.geometry("800x600")
-root.configure(fg_color="#222222")
+root = tk.Tk()
+root.geometry("640x480")
+root.configure(bg="#0b0b0b")
 
-def my_handler(event=None):
-    for i in range(10):
-        print(f"tick {i}")
+entry_1 = tk.Entry(master=root, width=25, bg="#ffffff")
+entry_1.place(x=12, y=14)
+entry_1.insert(0, stamp())
 
-b1 = ctk.CTkButton(master=root, text="Go", fg_color="#ff0000",
-                   width=100, height=30, hover=True,
-                   hover_color="#aa0000", corner_radius=4,
-                   border_width=1, border_color="#000000",
-                   text_color="#ffffff", font=("Arial", 12))
-b1.place(x=10, y=20)
-
-root.bind("<Key>", my_handler)
+root.bind("<Escape>", lambda event: root.destroy())
 root.mainloop()
-`;
-    const { state, warnings } = parseTkinterCode(source);
-
-    expect(state.windowTitle).toBe("Single quoted title");
-    expect(state.canvasWidth).toBe(800);
-    expect(state.canvasHeight).toBe(600);
-    expect(state.windowBackground).toBe("#222222");
-    expect(warnings).toEqual([]);
-    expect(state.components).toHaveLength(1);
-    expect(state.components[0]).toMatchObject({
-      name: "Button",
-      x: 10,
-      y: 20,
-      text: "Go",
-      bg_color: "#ff0000",
-      enable_hover: true,
-      hover_bg_color: "#aa0000",
-      border_width: 1,
-      border_radius: 4,
-      width: 100,
-      height: 30,
-      font_size: 12,
-    });
-  });
-
-  it("handles star-import style with no module prefix", () => {
-    const source = `from customtkinter import *
-root = CTk()
-root.title("Star")
-root.geometry("300x200")
-e = CTkEntry(master=root)
-e.place(x=7, y=8)
-`;
-    expect(summarise(source)).toEqual(["Entry@(7,8)"]);
+`);
+    expect(result.warnings).toEqual([]);
+    expect(result.doc.canvasWidth).toBe(640);
+    expect(result.doc.canvasHeight).toBe(480);
+    expect(result.doc.windowBackground).toBe("#0b0b0b");
+    expect(result.doc.components[0].props.width).toBe(25);
   });
 
   it("keeps what it understands and says what it skipped", () => {
-    const source = `root = ctk.CTk()
-root.title("Mixed")
-root.geometry("640x480")
-slider = ctk.CTkSlider(master=root)
-slider.place(x=5, y=5)
-orphan = ctk.CTkLabel(master=root, text="never placed")
-lbl = ctk.CTkLabel(master=root, text="ok", fg_color="transparent")
-lbl.place(x=1, y=2)
-`;
-    const { state, warnings } = parseTkinterCode(source);
+    const result = parse(`import tkinter as tk
+from tkinter import ttk
 
-    expect(summarise(source)).toEqual(["Labels@(1,2)"]);
-    expect(state.components[0].text).toBe("ok");
-    expect(warnings).toHaveLength(2);
-    expect(warnings.join(" ")).toMatch(/CTkSlider is not supported/);
-    expect(warnings.join(" ")).toMatch(/orphan.*never given a \.place/);
-  });
-
-  it("falls back to defaults when the window is never configured", () => {
-    const source = `root = ctk.CTk()
-root.title("No geometry")
-e = ctk.CTkEntry(master=root)
-e.place(x=0, y=0)
-`;
-    const { state } = parseTkinterCode(source);
-    expect(state.canvasWidth).toBeGreaterThan(0);
-    expect(state.canvasHeight).toBeGreaterThan(0);
-    expect(state.windowBackground).toBe("#ffffff");
+root = tk.Tk()
+tree_1 = ttk.Treeview(master=root)
+tree_1.place(x=0, y=0)
+label_1 = tk.Label(master=root, text="Kept")
+label_1.place(x=10, y=10)
+`);
+    expect(result.doc.components).toHaveLength(1);
+    expect(result.doc.components[0].props.text).toBe("Kept");
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain("Treeview");
   });
 
   it("ignores a widget placed with a layout manager it does not model", () => {
-    const source = `root = ctk.CTk()
-root.title("Packed")
-root.geometry("400x300")
-lbl = ctk.CTkLabel(master=root, text="packed")
-lbl.pack()
-`;
-    const { state, warnings } = parseTkinterCode(source);
-    expect(state.components).toEqual([]);
-    expect(warnings.join(" ")).toMatch(/never given a \.place/);
+    const result = parse(`import tkinter as tk
+
+root = tk.Tk()
+label_1 = tk.Label(master=root, text="packed")
+label_1.pack()
+`);
+    expect(result.doc.components).toEqual([]);
+    expect(result.warnings[0]).toContain("place(x=, y=)");
+  });
+
+  it("falls back to defaults when the window is never configured", () => {
+    const result = parse(`import tkinter as tk
+
+root = tk.Tk()
+label_1 = tk.Label(master=root, text="bare")
+label_1.place(x=0, y=0)
+`);
+    expect(result.doc.windowTitle).toBe("My App");
+    expect(result.doc.canvasWidth).toBe(900);
+    expect(result.doc.canvasHeight).toBe(600);
   });
 });
 
 describe("value handling", () => {
-  const withButton = (kwargs: string) => `root = ctk.CTk()
-root.title("T")
-root.geometry("400x300")
-b = ctk.CTkButton(master=root, ${kwargs})
-b.place(x=0, y=0)
-`;
+  const tk = (call: string, extra = "") => `import tkinter as tk
+root = tk.Tk()
+widget_1 = ${call}
+widget_1.place(x=0, y=0)
+${extra}`;
 
   it("reads negative and fractional place coordinates", () => {
-    const source = `root = ctk.CTk()
-root.title("T")
-root.geometry("400x300")
-b = ctk.CTkEntry(master=root)
-b.place(x=-30, y=12.7)
-`;
-    expect(summarise(source)).toEqual(["Entry@(-30,13)"]);
+    const result = parse(`import tkinter as tk
+root = tk.Tk()
+label_1 = tk.Label(master=root, text="x")
+label_1.place(x=-40, y=12.5)
+`);
+    expect(result.doc.components[0]).toMatchObject({ x: -40, y: 12.5 });
   });
 
-  it("treats transparent as an absent colour, not the literal string", () => {
-    const { state } = parseTkinterCode(withButton('fg_color="transparent"'));
-    expect(state.components[0].bg_color).toBeUndefined();
+  it("treats a transparent customtkinter colour as an absent one", () => {
+    const result = parse(`import customtkinter as ctk
+root = ctk.CTk()
+label_1 = ctk.CTkLabel(master=root, text="t", fg_color="transparent")
+label_1.place(x=0, y=0)
+`);
+    expect(result.doc.components[0].props.fg_color).toBeUndefined();
   });
 
   it("keeps a named colour rather than discarding it", () => {
-    const { state } = parseTkinterCode(withButton('fg_color="red"'));
-    expect(state.components[0].bg_color).toBe("red");
+    expect(first(tk('tk.Label(master=root, text="n", bg="lightblue")')).props.bg).toBe(
+      "lightblue"
+    );
   });
 
   it("ignores kwargs whose type does not match the property", () => {
-    const { state } = parseTkinterCode(withButton('width="wide", hover=1'));
-    expect(state.components[0].width).toBeUndefined();
-    expect(state.components[0].enable_hover).toBeUndefined();
+    const component = first(tk('tk.Label(master=root, text=42, borderwidth="thick")'));
+    expect(component.props.text).toBeUndefined();
+    expect(component.props.borderwidth).toBeUndefined();
   });
 
-  it("takes the font size from the tuple and ignores an unmodelled family", () => {
-    const { state } = parseTkinterCode(
-      withButton('font=("Comic Sans MS", 33)')
+  it("reads the font family, size and weight from the tuple", () => {
+    const component = first(
+      tk('tk.Label(master=root, text="f", font=("Courier", 18, "bold"))')
     );
-    expect(state.components[0].font_size).toBe(33);
-    expect(state.components[0].font_family).toBeUndefined();
+    expect(component.props.font_family).toBe("Courier");
+    expect(component.props.font_size).toBe(18);
+    expect(component.props.font_weight).toBe("bold");
   });
 
-  it("reads the font family for widgets that model one", () => {
-    const source = `root = ctk.CTk()
-root.title("T")
-root.geometry("400x300")
-l = ctk.CTkLabel(master=root, font=("Georgia", 19))
-l.place(x=0, y=0)
-`;
-    const { state } = parseTkinterCode(source);
-    expect(state.components[0]).toMatchObject({
-      font_family: "Georgia",
-      font_size: 19,
-    });
+  it("defaults the weight when the tuple carries only family and size", () => {
+    const component = first(tk('tk.Label(master=root, text="f", font=("Arial", 12))'));
+    expect(component.props.font_weight).toBe("normal");
+  });
+
+  it("only accepts select values the widget actually offers", () => {
+    const component = first(
+      tk('tk.Label(master=root, text="s", relief="wobbly", justify="right")')
+    );
+    expect(component.props.relief).toBeUndefined();
+    expect(component.props.justify).toBe("right");
+  });
+
+  it("reads a flet enum written as an attribute", () => {
+    const result = parse(`import flet as ft
+def main(page):
+    text_1 = ft.Text(value="e", weight=ft.FontWeight.BOLD, left=0, top=0)
+    page.add(ft.Stack(controls=[text_1]))
+`);
+    expect(result.doc.components[0].props.weight).toBe("bold");
+  });
+
+  it("reads customtkinter values as a list", () => {
+    const result = parse(`import customtkinter as ctk
+root = ctk.CTk()
+combobox_1 = ctk.CTkComboBox(master=root, values=["A", "B"])
+combobox_1.place(x=0, y=0)
+`);
+    expect(result.doc.components[0].props.values).toEqual(["A", "B"]);
   });
 
   it("uses the first placement when a widget is placed twice", () => {
-    const source = `root = ctk.CTk()
-root.title("T")
-root.geometry("400x300")
-e = ctk.CTkEntry(master=root)
-e.place(x=1, y=1)
-e.place(x=99, y=99)
-`;
-    expect(summarise(source)).toEqual(["Entry@(1,1)"]);
+    const result = parse(`import tkinter as tk
+root = tk.Tk()
+label_1 = tk.Label(master=root, text="twice")
+label_1.place(x=10, y=10)
+label_1.place(x=99, y=99)
+`);
+    expect(result.doc.components).toHaveLength(1);
+    expect(result.doc.components[0]).toMatchObject({ x: 10, y: 10 });
   });
 
-  it("never returns a selection, since ids are freshly generated", () => {
-    const { state } = parseTkinterCode(withButton('text="x"'));
-    expect(state.selectedId).toBeNull();
+  it("keeps the order the widgets were placed in", () => {
+    const result = parse(`import tkinter as tk
+root = tk.Tk()
+a = tk.Label(master=root, text="first")
+b = tk.Button(master=root, text="second")
+b.place(x=0, y=0)
+a.place(x=0, y=20)
+`);
+    expect(result.doc.components.map((c) => c.props.text)).toEqual([
+      "second",
+      "first",
+    ]);
+  });
+});
+
+describe("flet controls the editor does not model", () => {
+  it("warns about a positioned control it cannot place", () => {
+    const result = parsePythonCode(`import flet as ft
+
+def main(page):
+    text_1 = ft.Text(value="kept", left=0, top=0)
+    card_1 = ft.Card(left=100, top=100)
+    page.add(ft.Stack(controls=[text_1, card_1]))
+`);
+    expect(result.doc.components).toHaveLength(1);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain("Card");
+  });
+
+  it("stays quiet about ordinary assignments that are not controls", () => {
+    const result = parsePythonCode(`import flet as ft
+from datetime import datetime
+
+def main(page):
+    started = datetime.now()
+    text_1 = ft.Text(value="kept", left=0, top=0)
+    page.add(ft.Stack(controls=[text_1]))
+`);
+    expect(result.warnings).toEqual([]);
   });
 });

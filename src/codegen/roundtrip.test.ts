@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { generateTkinterCode } from "@/codegen/generate";
-import { parseTkinterCode } from "@/codegen/parse";
-import type { Component, EditorState } from "@/types";
+import { generateCode } from "@/codegen/generate";
+import { parsePythonCode } from "@/codegen/parse";
+import { FRAMEWORKS, FRAMEWORK_IDS, defaultProps } from "@/frameworks";
+import type { FrameworkId } from "@/frameworks/types";
+import { emptyDoc } from "@/state/editorReducer";
+import type { Component, EditorState, FrameworkDoc } from "@/types";
+import { emptyDocs } from "@/state/editorReducer";
 
-/** Ids are internal and regenerated on load, and property insertion order is
- *  not meaningful, so comparisons are made on a canonical form. */
 const canon = (value: unknown): unknown => {
   if (Array.isArray(value)) return value.map(canon);
   if (value && typeof value === "object") {
@@ -18,172 +20,199 @@ const canon = (value: unknown): unknown => {
   return value;
 };
 
-const roundTrip = (state: EditorState) =>
-  parseTkinterCode(generateTkinterCode(state)).state;
-
-const baseState = (components: Component[]): EditorState => ({
-  components,
-  selectedId: null,
-  windowTitle: "My App",
-  windowBackground: "#ffffff",
-  canvasWidth: 900,
-  canvasHeight: 600,
+const stateOf = (framework: FrameworkId, doc: FrameworkDoc): EditorState => ({
+  framework,
+  docs: { ...emptyDocs(), [framework]: doc },
 });
 
-const everyWidget: EditorState = {
-  windowTitle: 'Tricky "title" with \\ backslash',
-  windowBackground: "#101828",
-  canvasWidth: 1024,
-  canvasHeight: 640,
-  selectedId: null,
-  components: [
-    {
-      id: "a",
-      name: "Button",
-      x: 0,
-      y: 0,
-      text: 'Say "hi"\nnow\ttabbed',
-      text_color: "#ffffff",
-      bg_color: "#3b82f6",
-      border_width: 2,
-      border_radius: 12,
-      border_color: "#1d4ed8",
-      font_size: 18,
-      enable_hover: false,
-      hover_bg_color: "#2563eb",
-      width: 200,
-      height: 40,
-    },
-    {
-      id: "b",
-      name: "Labels",
-      x: 980,
-      y: 620,
-      text: "Ünicode ✓ label",
-      text_color: "#000000",
-      bg_color: undefined,
-      font_size: 22,
-      font_family: "Times New Roman",
-    },
-    {
-      id: "c",
-      name: "CheckBox",
-      x: 40,
-      y: 100,
-      text: "Accept",
-      text_color: "#ff0000",
-      bg_color: "#eeeeee",
-    },
-    {
-      id: "d",
-      name: "RadioButton",
-      x: 40,
-      y: 140,
-      text: "Option A",
-      text_color: "#00ff00",
-      bg_color: undefined,
-    },
-    { id: "e", name: "Entry", x: 300, y: 200 },
-    { id: "f", name: "ListBox", x: 300, y: 300 },
-  ],
-};
+const docWith = (
+  framework: FrameworkId,
+  components: Component[]
+): FrameworkDoc => ({
+  ...emptyDoc(framework),
+  windowTitle: "Round trip",
+  windowBackground: "#101010",
+  canvasWidth: 800,
+  canvasHeight: 500,
+  components,
+});
 
-describe("editor -> python -> editor", () => {
-  it("restores every widget type with its properties, order and position", () => {
-    expect(canon(roundTrip(everyWidget))).toEqual(canon(everyWidget));
+const everyWidget = (framework: FrameworkId): Component[] =>
+  FRAMEWORKS[framework].widgets.map((widget, index) => ({
+    id: `id-${index}`,
+    kind: widget.key,
+    x: 20 * index,
+    y: 40 + 10 * index,
+    props: defaultProps(widget),
+  }));
+
+const roundTrip = (framework: FrameworkId, doc: FrameworkDoc) =>
+  parsePythonCode(generateCode(stateOf(framework, doc)));
+
+describe.each(FRAMEWORK_IDS)("%s: editor -> python -> editor", (framework) => {
+  const doc = docWith(framework, everyWidget(framework));
+
+  it("keeps the framework it was generated for", () => {
+    expect(roundTrip(framework, doc).framework).toBe(framework);
+  });
+
+  it("restores every widget with its properties, order and position", () => {
+    expect(canon(roundTrip(framework, doc).doc)).toEqual(canon(doc));
   });
 
   it("reports nothing skipped for its own output", () => {
-    const { warnings } = parseTkinterCode(generateTkinterCode(everyWidget));
-    expect(warnings).toEqual([]);
+    expect(roundTrip(framework, doc).warnings).toEqual([]);
   });
 
   it("is stable across repeated trips", () => {
-    const once = generateTkinterCode(everyWidget);
-    const twice = generateTkinterCode(parseTkinterCode(once).state);
-    expect(twice).toBe(once);
+    const once = roundTrip(framework, doc).doc;
+    const twice = roundTrip(framework, once).doc;
+    expect(canon(twice)).toEqual(canon(once));
   });
 
-  it("assigns a fresh id to every loaded widget", () => {
-    const ids = roundTrip(everyWidget).components.map((c) => c.id);
-    expect(new Set(ids).size).toBe(ids.length);
-    expect(ids).not.toContain("a");
+  it("regenerates ids and never restores a selection", () => {
+    const result = roundTrip(framework, doc).doc;
+    expect(result.selectedId).toBeNull();
+    for (const component of result.components) {
+      expect(component.id).not.toBe("id-0");
+      expect(component.id.length).toBeGreaterThan(10);
+    }
+  });
+
+  it("keeps the window settings", () => {
+    const result = roundTrip(framework, doc).doc;
+    expect(result.windowTitle).toBe("Round trip");
+    expect(result.windowBackground).toBe("#101010");
+    expect(result.canvasWidth).toBe(800);
+    expect(result.canvasHeight).toBe(500);
+  });
+
+  it("survives a document with no widgets", () => {
+    const empty = docWith(framework, []);
+    expect(canon(roundTrip(framework, empty).doc)).toEqual(canon(empty));
   });
 });
 
-describe("values that the old generator could not represent", () => {
-  it("keeps a cleared background cleared instead of baking in a default", () => {
-    const state = baseState([
-      { id: "l", name: "Labels", x: 0, y: 0, text: "x", bg_color: undefined },
-    ]);
-    expect(generateTkinterCode(state)).toContain('fg_color="transparent"');
-    expect(roundTrip(state).components[0].bg_color).toBeUndefined();
-  });
-
-  it("distinguishes hover off from a hover colour equal to the background", () => {
-    const off = baseState([
+describe("customised properties", () => {
+  it("carries tkinter text, colours, relief and char sizing", () => {
+    const doc = docWith("tkinter", [
       {
-        id: "b",
-        name: "Button",
-        x: 0,
-        y: 0,
-        enable_hover: false,
-        bg_color: "#3b82f6",
-        hover_bg_color: "#3b82f6",
+        id: "a",
+        kind: "Button",
+        x: 40,
+        y: 60,
+        props: {
+          text: 'Say "hi"\n\\ ok',
+          fg: "#123456",
+          bg: "#abcdef",
+          relief: "groove",
+          borderwidth: 4,
+          width: 18,
+          height: 3,
+          font_family: "Courier New",
+          font_size: 22,
+          font_weight: "bold",
+          state: "disabled",
+        },
       },
     ]);
-    const on = baseState([{ ...off.components[0], enable_hover: true }]);
-
-    expect(roundTrip(off).components[0].enable_hover).toBe(false);
-    expect(roundTrip(on).components[0].enable_hover).toBe(true);
+    expect(canon(roundTrip("tkinter", doc).doc)).toEqual(canon(doc));
   });
 
-  it("escapes text so a quote or newline still produces importable Python", () => {
-    const text = 'He said "go"\\back\nand\ttabbed';
-    const state = baseState([{ id: "l", name: "Labels", x: 0, y: 0, text }]);
-
-    const code = generateTkinterCode(state);
-    expect(code).not.toContain('text="He said "go"');
-    expect(roundTrip(state).components[0].text).toBe(text);
-  });
-
-  it("carries the window size through geometry() rather than a fixed default", () => {
-    const state = { ...baseState([]), canvasWidth: 1234, canvasHeight: 567 };
-    expect(generateTkinterCode(state)).toContain('root.geometry("1234x567")');
-    const restored = roundTrip(state);
-    expect([restored.canvasWidth, restored.canvasHeight]).toEqual([1234, 567]);
-  });
-
-  it("emits one shared click handler no matter how many buttons there are", () => {
-    const code = generateTkinterCode(
-      baseState([
-        { id: "1", name: "Button", x: 0, y: 0 },
-        { id: "2", name: "Button", x: 0, y: 40 },
-        { id: "3", name: "Button", x: 0, y: 80 },
-      ])
-    );
-    expect(code.match(/def on_button_click\(\):/g)).toHaveLength(1);
-  });
-
-  it("omits the handler entirely when there are no buttons", () => {
-    const code = generateTkinterCode(
-      baseState([{ id: "l", name: "Labels", x: 0, y: 0 }])
-    );
-    expect(code).not.toContain("on_button_click");
-  });
-});
-
-describe("ordering", () => {
-  it("preserves widget order, which decides stacking on the canvas", () => {
-    const state = baseState([
-      { id: "1", name: "Labels", x: 0, y: 0, text: "first" },
-      { id: "2", name: "Button", x: 0, y: 0, text: "second" },
-      { id: "3", name: "Labels", x: 0, y: 0, text: "third" },
+  it("carries customtkinter colours, radius and hover", () => {
+    const doc = docWith("customtkinter", [
+      {
+        id: "a",
+        kind: "CTkButton",
+        x: 20,
+        y: 20,
+        props: {
+          text: "Sign in",
+          text_color: "#ffffff",
+          fg_color: "#ef4444",
+          hover: false,
+          hover_color: "#b91c1c",
+          border_width: 3,
+          border_color: "#111111",
+          corner_radius: 18,
+          width: 200,
+          height: 44,
+          font_family: "Verdana",
+          font_size: 18,
+          font_weight: "bold",
+        },
+      },
     ]);
-    expect(roundTrip(state).components.map((c) => c.text)).toEqual([
-      "first",
-      "second",
-      "third",
+    expect(canon(roundTrip("customtkinter", doc).doc)).toEqual(canon(doc));
+  });
+
+  it("carries flet enums, booleans and dropdown options", () => {
+    const doc = docWith("flet", [
+      {
+        id: "a",
+        kind: "Text",
+        x: 10,
+        y: 10,
+        props: {
+          value: "Heading",
+          size: 32,
+          weight: "w_900",
+          italic: true,
+          text_align: "center",
+          color: "#0f172a",
+        },
+      },
+      {
+        id: "b",
+        kind: "Dropdown",
+        x: 10,
+        y: 80,
+        props: {
+          label: "Country",
+          options: ["Poland", "Ukraine", "Germany"],
+          border_radius: 12,
+          width: 300,
+        },
+      },
+      {
+        id: "c",
+        kind: "IconButton",
+        x: 10,
+        y: 160,
+        props: { icon: "delete", icon_color: "#dc2626", icon_size: 30 },
+      },
     ]);
+    expect(canon(roundTrip("flet", doc).doc)).toEqual(canon(doc));
+  });
+
+  it("keeps a cleared customtkinter colour cleared", () => {
+    const doc = docWith("customtkinter", [
+      {
+        id: "a",
+        kind: "CTkButton",
+        x: 0,
+        y: 0,
+        props: { text: "Ghost", text_color: "#000000" },
+      },
+    ]);
+    const result = roundTrip("customtkinter", doc).doc;
+    expect(generateCode(stateOf("customtkinter", doc))).toContain(
+      'fg_color="transparent"'
+    );
+    expect(result.components[0].props.fg_color).toBeUndefined();
+  });
+
+  it("keeps tkinter listbox items", () => {
+    const doc = docWith("tkinter", [
+      {
+        id: "a",
+        kind: "Listbox",
+        x: 0,
+        y: 0,
+        props: { items: ["Alpha", "Beta"], bg: "#ffffff" },
+      },
+    ]);
+    const result = roundTrip("tkinter", doc).doc;
+    expect(result.components[0].props.items).toEqual(["Alpha", "Beta"]);
   });
 });
